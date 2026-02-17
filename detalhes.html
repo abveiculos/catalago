@@ -223,6 +223,11 @@
         // RENDERIZAÇÃO
         // ============================================
         function renderizarVeiculo() {
+            console.log('=== RENDERIZANDO VEÍCULO ===');
+            console.log('Veículo completo:', veiculo);
+            console.log('imagem_principal:', veiculo.imagem_principal);
+            console.log('imagens array:', veiculo.imagens);
+            
             const titulo = `${veiculo.marca} ${veiculo.modelo}`;
             document.title = `${titulo} ${veiculo.ano} — ${config.nome_loja || 'Auto Premium'}`;
 
@@ -238,10 +243,18 @@
 
             // ---- IMAGENS ----
             todasImagens = [];
+            console.log('Montando galeria...');
 
             // Imagem principal (coluna W da planilha)
+            console.log('Antes converterUrl:', veiculo.imagem_principal);
             const principal = converterUrl(veiculo.imagem_principal);
-            if (principal) todasImagens.push(principal);
+            console.log('Depois converterUrl:', principal);
+            if (principal) {
+                todasImagens.push(principal);
+                console.log('✅ Imagem principal adicionada');
+            } else {
+                console.log('❌ Imagem principal vazia!');
+            }
 
             // Demais imagens da pasta Drive
             if (Array.isArray(veiculo.imagens)) {
@@ -251,7 +264,11 @@
                 });
             }
 
+            console.log('Total de imagens:', todasImagens.length);
+            console.log('Array final:', todasImagens);
+            
             if (todasImagens.length === 0) {
+                console.log('⚠️ Nenhuma imagem encontrada, usando placeholder');
                 todasImagens.push('https://placehold.co/800x500/e2e8f0/94a3b8?text=Sem+Foto');
             }
 
@@ -391,13 +408,19 @@
         // ============================================
         function converterUrl(url) {
             if (!url || url === '' || url === 'undefined' || url === 'null') return '';
-            if (url.includes('export=view')) return url;
             if (url.includes('/folders/')) return '';
+            
+            // Extrair ID do Drive
+            let fileId = null;
             if (url.includes('drive.google.com')) {
                 const m = url.match(/[-\w]{25,}/);
-                if (m) return `https://drive.google.com/uc?export=view&id=${m[0]}`;
+                if (m) fileId = m[0];
             }
-            return url;
+            
+            if (!fileId) return url;
+            
+            // SOLUÇÃO CORB: Usar thumbnail do Drive que não tem bloqueio
+            return `https://drive.google.com/thumbnail?id=${fileId}&sz=w1000`;
         }
 
         function formatarMoeda(v) {
