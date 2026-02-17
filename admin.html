@@ -232,7 +232,7 @@
     <div id="toastContainer"></div>
 
     <script>
-        const API_URL = 'https://script.google.com/macros/s/AKfycbyyvrlTy9iOxBY-RHUCp2k_AfuU12KSO1B2LTjXr5KaFqTJ6TGSqFQL8uLctB_MkSM3/exec';
+        const API_URL = 'https://script.google.com/macros/s/AKfycbzOZ7khcZSKwlFLglHS_D_9-PEnyeaAADZZBIl9wkfqTR0T6iF_cqAhsImnIp7neJAa/exec';
         
         let todosVeiculos = [];
         let todosLeads = [];
@@ -376,37 +376,56 @@
                 }
                 const res = await fetch(`${API_URL}?action=${action}`, {
                     method: 'POST',
-                    headers: {'Content-Type': 'application/json'},
                     body: JSON.stringify(dados)
                 });
                 const result = await res.json();
                 console.log('📊 Resultado do salvamento:', result);
+                console.log('📁 pastaId:', result.pastaId);
+                console.log('🖼️ Imagens selecionadas:', imagensSelecionadas.length);
                 if (result.success) {
-                    if (imagensSelecionadas.length > 0 && result.pastaId) {
+                    if (imagensSelecionadas.length > 0) {
                         console.log('📸 Iniciando upload de', imagensSelecionadas.length, 'imagens');
                         console.log('🗂️ Pasta ID:', result.pastaId);
                         console.log('📦 Veículo ID:', result.id);
-                        const uploadData = {veiculoId: result.id, pastaId: result.pastaId, imagens: imagensSelecionadas};
-                        console.log('📤 Enviando dados:', JSON.stringify(uploadData));
+                        const pastaIdUpload = result.pastaId || '';
+                        if (!pastaIdUpload) {
+                            console.error('❌ Sem pastaId para upload!');
+                            mostrarToast('Veículo salvo! Para adicionar fotos, edite o veículo.', 'success');
+                        } else {
                         try {
-                            const uploadRes = await fetch(`${API_URL}?action=uploadMultiplasImagens`, {
-                                method: 'POST',
-                                headers: {'Content-Type': 'application/json'},
-                                body: JSON.stringify(uploadData)
-                            });
-                            const uploadResult = await uploadRes.json();
-                            console.log('📥 Resultado do upload:', uploadResult);
-                            if (uploadResult.success) {
-                                console.log('✅ Upload concluído com sucesso!');
-                                mostrarToast('Veículo e fotos salvos com sucesso!', 'success');
+                            console.log('📤 Enviando imagens uma por uma...');
+                            let erros = 0;
+                            for (let imgIdx = 0; imgIdx < imagensSelecionadas.length; imgIdx++) {
+                                const img = imagensSelecionadas[imgIdx];
+                                const dadosImg = {
+                                    veiculoId: result.id,
+                                    pastaId: pastaIdUpload,
+                                    imagens: [img]
+                                };
+                                console.log('📸 Enviando imagem ' + (imgIdx+1) + '/' + imagensSelecionadas.length + ': ' + img.nome);
+                                try {
+                                    const r = await fetch(API_URL + '?action=uploadMultiplasImagens', {
+                                        method: 'POST',
+                                        body: JSON.stringify(dadosImg)
+                                    });
+                                    const rj = await r.json();
+                                    console.log('Resultado img ' + (imgIdx+1) + ':', rj);
+                                    if (!rj.success) erros++;
+                                } catch(imgErr) {
+                                    console.error('Erro img ' + (imgIdx+1) + ':', imgErr);
+                                    erros++;
+                                }
+                            }
+                            if (erros === 0) {
+                                mostrarToast('Veículo e ' + imagensSelecionadas.length + ' foto(s) salvas com sucesso!', 'success');
                             } else {
-                                console.error('❌ Erro no upload:', uploadResult.error);
-                                mostrarToast('Veículo salvo, mas erro ao fazer upload das fotos: ' + uploadResult.error, 'error');
+                                mostrarToast('Veículo salvo. ' + erros + ' foto(s) com erro.', 'error');
                             }
                         } catch (uploadError) {
                             console.error('❌ Erro ao enviar fotos:', uploadError);
                             mostrarToast('Veículo salvo, mas erro ao enviar fotos', 'error');
                         }
+                        } // fecha if pastaId
                     } else {
                         console.log('⚠️ Sem imagens para upload ou editando veículo existente');
                         mostrarToast(veiculoEditando ? 'Veículo atualizado!' : 'Veículo adicionado!', 'success');
@@ -457,10 +476,12 @@
         }
 
         function handleFiles(files) {
+            console.log('📂 Arquivos selecionados:', files.length);
             Array.from(files).forEach((file, index) => {
                 if (!file.type.startsWith('image/')) return;
                 const reader = new FileReader();
                 reader.onload = (e) => {
+                    console.log('✅ Imagem adicionada:', file.name, 'Total:', imagensSelecionadas.length + 1);
                     imagensSelecionadas.push({
                         nome: file.name,
                         base64: e.target.result,
