@@ -1,0 +1,270 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Login - Área Administrativa</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link rel="stylesheet" href="https://unpkg.com/lucide@latest/dist/lucide.min.css">
+    <script src="https://unpkg.com/lucide@latest"></script>
+    <style>
+        @import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&display=swap');
+        
+        * {
+            font-family: 'Inter', sans-serif;
+        }
+
+        .gradient-bg {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+        }
+
+        .login-container {
+            min-height: 100vh;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+        }
+
+        .shake {
+            animation: shake 0.5s;
+        }
+
+        @keyframes shake {
+            0%, 100% { transform: translateX(0); }
+            10%, 30%, 50%, 70%, 90% { transform: translateX(-10px); }
+            20%, 40%, 60%, 80% { transform: translateX(10px); }
+        }
+    </style>
+</head>
+<body class="gradient-bg">
+    
+    <div class="login-container">
+        <div class="w-full max-w-md mx-4">
+            <!-- Logo e Título -->
+            <div class="text-center mb-8">
+                <div class="inline-flex items-center justify-center w-20 h-20 bg-white rounded-full shadow-lg mb-4">
+                    <i data-lucide="shield-check" class="w-10 h-10 text-purple-600"></i>
+                </div>
+                <h1 class="text-3xl font-bold text-white mb-2">Área Administrativa</h1>
+                <p class="text-white/80">Sistema de Gestão de Carros Usados</p>
+            </div>
+
+            <!-- Card de Login -->
+            <div id="loginCard" class="bg-white rounded-2xl shadow-2xl p-8">
+                <form id="formLogin" onsubmit="fazerLogin(event)">
+                    <div class="mb-6">
+                        <label class="block text-sm font-medium text-gray-700 mb-2">
+                            Senha Administrativa
+                        </label>
+                        <div class="relative">
+                            <input 
+                                type="password" 
+                                id="inputSenha"
+                                class="w-full border-2 border-gray-300 rounded-lg px-4 py-3 pr-12 focus:ring-2 focus:ring-purple-600 focus:border-transparent transition"
+                                placeholder="Digite sua senha"
+                                required
+                            >
+                            <button 
+                                type="button"
+                                onclick="toggleSenha()"
+                                class="absolute right-3 top-1/2 transform -translate-y-1/2 text-gray-500 hover:text-gray-700"
+                            >
+                                <i id="iconOlho" data-lucide="eye" class="w-5 h-5"></i>
+                            </button>
+                        </div>
+                        <p id="mensagemErro" class="hidden text-red-600 text-sm mt-2 flex items-center">
+                            <i data-lucide="alert-circle" class="w-4 h-4 mr-1"></i>
+                            Senha incorreta. Tente novamente.
+                        </p>
+                    </div>
+
+                    <button 
+                        type="submit"
+                        id="btnEntrar"
+                        class="w-full bg-purple-600 hover:bg-purple-700 text-white font-semibold py-3 rounded-lg transition flex items-center justify-center"
+                    >
+                        <i data-lucide="log-in" class="w-5 h-5 mr-2"></i>
+                        Entrar
+                    </button>
+                </form>
+
+                <div class="mt-6 pt-6 border-t text-center">
+                    <a href="index.html" class="text-purple-600 hover:text-purple-700 font-medium flex items-center justify-center">
+                        <i data-lucide="arrow-left" class="w-4 h-4 mr-2"></i>
+                        Voltar para o site
+                    </a>
+                </div>
+            </div>
+
+            <!-- Informações -->
+            <div class="mt-6 text-center">
+                <p class="text-white/70 text-sm">
+                    © 2025 Sistema Profissional de Gestão
+                </p>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        // ============================================
+        // CONFIGURAÇÃO DA API
+        // ============================================
+        const API_URL = 'https://script.google.com/macros/s/AKfycbweKB-tmROFFtw9r9iiW8tQF7vW-nyg5xOwvSUgdnXOjZrOTJQq3171_MRe0XoBTSZN/exec';
+
+        // ============================================
+        // INICIALIZAÇÃO
+        // ============================================
+        document.addEventListener('DOMContentLoaded', () => {
+            lucide.createIcons();
+            verificarSessao();
+            document.getElementById('inputSenha').focus();
+        });
+
+        // ============================================
+        // VERIFICAR SESSÃO EXISTENTE
+        // ============================================
+        function verificarSessao() {
+            const sessao = localStorage.getItem('admin_autenticado');
+            const timestamp = localStorage.getItem('admin_timestamp');
+            
+            if (sessao === 'true' && timestamp) {
+                const tempoDecorrido = Date.now() - parseInt(timestamp);
+                const TEMPO_SESSAO = 8 * 60 * 60 * 1000; // 8 horas
+                
+                if (tempoDecorrido < TEMPO_SESSAO) {
+                    // Sessão válida, redirecionar
+                    window.location.href = 'admin.html';
+                } else {
+                    // Sessão expirada
+                    limparSessao();
+                }
+            }
+        }
+
+        // ============================================
+        // FAZER LOGIN
+        // ============================================
+        async function fazerLogin(event) {
+            event.preventDefault();
+            
+            const senha = document.getElementById('inputSenha').value;
+            const btnEntrar = document.getElementById('btnEntrar');
+            const mensagemErro = document.getElementById('mensagemErro');
+            const loginCard = document.getElementById('loginCard');
+            
+            // Desabilitar botão
+            btnEntrar.disabled = true;
+            btnEntrar.innerHTML = '<i data-lucide="loader-2" class="w-5 h-5 mr-2 animate-spin"></i>Verificando...';
+            lucide.createIcons();
+            
+            // Esconder mensagem de erro anterior
+            mensagemErro.classList.add('hidden');
+            
+            try {
+                const response = await fetch(`${API_URL}?action=login&senha=${encodeURIComponent(senha)}`);
+                const result = await response.json();
+                
+                if (result.success && result.authenticated) {
+                    // Login bem-sucedido
+                    localStorage.setItem('admin_autenticado', 'true');
+                    localStorage.setItem('admin_timestamp', Date.now().toString());
+                    
+                    // Feedback visual de sucesso
+                    btnEntrar.innerHTML = '<i data-lucide="check-circle" class="w-5 h-5 mr-2"></i>Acesso liberado!';
+                    btnEntrar.classList.remove('bg-purple-600', 'hover:bg-purple-700');
+                    btnEntrar.classList.add('bg-green-600');
+                    lucide.createIcons();
+                    
+                    // Redirecionar após 1 segundo
+                    setTimeout(() => {
+                        window.location.href = 'admin.html';
+                    }, 1000);
+                } else {
+                    // Senha incorreta
+                    mostrarErro();
+                }
+            } catch (error) {
+                console.error('Erro ao fazer login:', error);
+                mostrarErroConexao();
+            }
+        }
+
+        // ============================================
+        // MOSTRAR ERRO
+        // ============================================
+        function mostrarErro() {
+            const btnEntrar = document.getElementById('btnEntrar');
+            const mensagemErro = document.getElementById('mensagemErro');
+            const loginCard = document.getElementById('loginCard');
+            const inputSenha = document.getElementById('inputSenha');
+            
+            // Mostrar mensagem de erro
+            mensagemErro.classList.remove('hidden');
+            
+            // Shake animation
+            loginCard.classList.add('shake');
+            setTimeout(() => loginCard.classList.remove('shake'), 500);
+            
+            // Resetar botão
+            btnEntrar.disabled = false;
+            btnEntrar.innerHTML = '<i data-lucide="log-in" class="w-5 h-5 mr-2"></i>Entrar';
+            lucide.createIcons();
+            
+            // Limpar e focar no input
+            inputSenha.value = '';
+            inputSenha.focus();
+            inputSenha.classList.add('border-red-500');
+            setTimeout(() => inputSenha.classList.remove('border-red-500'), 3000);
+        }
+
+        function mostrarErroConexao() {
+            const btnEntrar = document.getElementById('btnEntrar');
+            const mensagemErro = document.getElementById('mensagemErro');
+            
+            mensagemErro.innerHTML = '<i data-lucide="wifi-off" class="w-4 h-4 mr-1"></i>Erro de conexão. Verifique sua internet.';
+            mensagemErro.classList.remove('hidden');
+            lucide.createIcons();
+            
+            btnEntrar.disabled = false;
+            btnEntrar.innerHTML = '<i data-lucide="log-in" class="w-5 h-5 mr-2"></i>Tentar Novamente';
+            lucide.createIcons();
+        }
+
+        // ============================================
+        // TOGGLE SENHA
+        // ============================================
+        function toggleSenha() {
+            const input = document.getElementById('inputSenha');
+            const icon = document.getElementById('iconOlho');
+            
+            if (input.type === 'password') {
+                input.type = 'text';
+                icon.setAttribute('data-lucide', 'eye-off');
+            } else {
+                input.type = 'password';
+                icon.setAttribute('data-lucide', 'eye');
+            }
+            
+            lucide.createIcons();
+        }
+
+        // ============================================
+        // LIMPAR SESSÃO
+        // ============================================
+        function limparSessao() {
+            localStorage.removeItem('admin_autenticado');
+            localStorage.removeItem('admin_timestamp');
+        }
+
+        // ============================================
+        // ATALHOS DE TECLADO
+        // ============================================
+        document.addEventListener('keydown', (e) => {
+            // ESC para voltar
+            if (e.key === 'Escape') {
+                window.location.href = 'index.html';
+            }
+        });
+    </script>
+</body>
+</html>

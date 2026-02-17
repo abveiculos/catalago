@@ -1,0 +1,611 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Auto Premium - Carros Seminovos</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link rel="stylesheet" href="https://unpkg.com/lucide@latest/dist/lucide.min.css">
+    <script src="https://unpkg.com/lucide@latest"></script>
+    <style>
+        @import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&display=swap');
+        
+        * {
+            font-family: 'Inter', sans-serif;
+        }
+
+        .gradient-bg {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+        }
+
+        .card-hover {
+            transition: all 0.3s ease;
+        }
+
+        .card-hover:hover {
+            transform: translateY(-8px);
+            box-shadow: 0 20px 40px rgba(0,0,0,0.2);
+        }
+
+        .badge-destaque {
+            animation: pulse 2s infinite;
+        }
+
+        @keyframes pulse {
+            0%, 100% { opacity: 1; }
+            50% { opacity: 0.8; }
+        }
+
+        .whatsapp-float {
+            position: fixed;
+            bottom: 20px;
+            right: 20px;
+            z-index: 1000;
+            animation: bounce 2s infinite;
+        }
+
+        @keyframes bounce {
+            0%, 100% { transform: translateY(0); }
+            50% { transform: translateY(-10px); }
+        }
+
+        .skeleton {
+            background: linear-gradient(90deg, #f0f0f0 25%, #e0e0e0 50%, #f0f0f0 75%);
+            background-size: 200% 100%;
+            animation: loading 1.5s infinite;
+        }
+
+        @keyframes loading {
+            0% { background-position: 200% 0; }
+            100% { background-position: -200% 0; }
+        }
+
+        .filter-modal {
+            transform: translateY(100%);
+            transition: transform 0.3s ease;
+        }
+
+        .filter-modal.active {
+            transform: translateY(0);
+        }
+
+        img[data-src] {
+            opacity: 0;
+            transition: opacity 0.3s;
+        }
+
+        img[data-loaded="true"] {
+            opacity: 1;
+        }
+    </style>
+</head>
+<body class="bg-gray-50">
+    
+    <!-- Header -->
+    <header class="gradient-bg text-white shadow-lg sticky top-0 z-50">
+        <div class="container mx-auto px-4 py-4">
+            <div class="flex items-center justify-between">
+                <div class="flex items-center space-x-3">
+                    <i data-lucide="car" class="w-8 h-8"></i>
+                    <div>
+                        <h1 class="text-2xl font-bold" id="nomeLoja">Auto Premium</h1>
+                        <p class="text-xs opacity-90">Carros Seminovos Selecionados</p>
+                    </div>
+                </div>
+                <button onclick="toggleFilters()" class="lg:hidden bg-white/20 p-2 rounded-lg backdrop-blur">
+                    <i data-lucide="filter" class="w-6 h-6"></i>
+                </button>
+            </div>
+        </div>
+    </header>
+
+    <!-- Hero Section -->
+    <section class="gradient-bg text-white py-12">
+        <div class="container mx-auto px-4 text-center">
+            <h2 class="text-3xl md:text-4xl font-bold mb-4">Encontre o Carro dos Seus Sonhos</h2>
+            <p class="text-lg opacity-90 mb-6">Veículos selecionados com procedência e garantia</p>
+            <button onclick="scrollToVeiculos()" class="bg-white text-purple-600 px-8 py-3 rounded-full font-semibold hover:bg-gray-100 transition shadow-lg">
+                Ver Estoque
+            </button>
+        </div>
+    </section>
+
+    <!-- Destaques -->
+    <section class="container mx-auto px-4 py-8" id="destaques">
+        <div class="flex items-center justify-between mb-6">
+            <h2 class="text-2xl font-bold text-gray-800 flex items-center">
+                <i data-lucide="star" class="w-6 h-6 mr-2 text-yellow-500"></i>
+                Destaques da Semana
+            </h2>
+        </div>
+        <div id="destaquesGrid" class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+            <!-- Skeleton Loading -->
+            <div class="skeleton rounded-xl h-96"></div>
+            <div class="skeleton rounded-xl h-96"></div>
+            <div class="skeleton rounded-xl h-96 hidden md:block"></div>
+        </div>
+    </section>
+
+    <!-- Filtros e Listagem -->
+    <section class="container mx-auto px-4 py-8" id="estoque">
+        <div class="flex items-center justify-between mb-6">
+            <h2 class="text-2xl font-bold text-gray-800 flex items-center">
+                <i data-lucide="car-front" class="w-6 h-6 mr-2 text-purple-600"></i>
+                Todo o Estoque
+            </h2>
+            <button onclick="toggleFilters()" class="hidden lg:flex items-center space-x-2 bg-purple-600 text-white px-4 py-2 rounded-lg hover:bg-purple-700 transition">
+                <i data-lucide="sliders" class="w-5 h-5"></i>
+                <span>Filtros</span>
+            </button>
+        </div>
+
+        <!-- Filtros Desktop -->
+        <div id="filtrosDesktop" class="hidden lg:block bg-white p-6 rounded-xl shadow-lg mb-6">
+            <div class="grid grid-cols-2 md:grid-cols-4 lg:grid-cols-5 gap-4">
+                <div>
+                    <label class="block text-sm font-medium text-gray-700 mb-2">Marca</label>
+                    <select id="filtroMarca" class="w-full border border-gray-300 rounded-lg px-3 py-2 focus:ring-2 focus:ring-purple-600 focus:border-transparent">
+                        <option value="">Todas</option>
+                    </select>
+                </div>
+                <div>
+                    <label class="block text-sm font-medium text-gray-700 mb-2">Ano Min</label>
+                    <input type="number" id="filtroAnoMin" placeholder="Ex: 2018" class="w-full border border-gray-300 rounded-lg px-3 py-2 focus:ring-2 focus:ring-purple-600 focus:border-transparent">
+                </div>
+                <div>
+                    <label class="block text-sm font-medium text-gray-700 mb-2">Preço Máx</label>
+                    <input type="number" id="filtroPrecoMax" placeholder="Ex: 50000" class="w-full border border-gray-300 rounded-lg px-3 py-2 focus:ring-2 focus:ring-purple-600 focus:border-transparent">
+                </div>
+                <div>
+                    <label class="block text-sm font-medium text-gray-700 mb-2">Câmbio</label>
+                    <select id="filtroCambio" class="w-full border border-gray-300 rounded-lg px-3 py-2 focus:ring-2 focus:ring-purple-600 focus:border-transparent">
+                        <option value="">Todos</option>
+                        <option value="Manual">Manual</option>
+                        <option value="Automático">Automático</option>
+                    </select>
+                </div>
+                <div>
+                    <label class="block text-sm font-medium text-gray-700 mb-2">Combustível</label>
+                    <select id="filtroCombustivel" class="w-full border border-gray-300 rounded-lg px-3 py-2 focus:ring-2 focus:ring-purple-600 focus:border-transparent">
+                        <option value="">Todos</option>
+                        <option value="Flex">Flex</option>
+                        <option value="Gasolina">Gasolina</option>
+                        <option value="Diesel">Diesel</option>
+                        <option value="Elétrico">Elétrico</option>
+                    </select>
+                </div>
+            </div>
+            <div class="flex justify-end space-x-3 mt-4">
+                <button onclick="limparFiltros()" class="px-4 py-2 border border-gray-300 rounded-lg hover:bg-gray-50 transition">
+                    Limpar
+                </button>
+                <button onclick="aplicarFiltros()" class="px-4 py-2 bg-purple-600 text-white rounded-lg hover:bg-purple-700 transition">
+                    Aplicar Filtros
+                </button>
+            </div>
+        </div>
+
+        <!-- Grid de Veículos -->
+        <div id="veiculosGrid" class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+            <!-- Skeleton Loading -->
+            <div class="skeleton rounded-xl h-96"></div>
+            <div class="skeleton rounded-xl h-96"></div>
+            <div class="skeleton rounded-xl h-96"></div>
+        </div>
+
+        <!-- Mensagem Vazia -->
+        <div id="mensagemVazia" class="hidden text-center py-12">
+            <i data-lucide="inbox" class="w-16 h-16 mx-auto text-gray-400 mb-4"></i>
+            <p class="text-gray-600 text-lg">Nenhum veículo encontrado com os filtros selecionados.</p>
+            <button onclick="limparFiltros()" class="mt-4 text-purple-600 font-semibold hover:underline">
+                Limpar filtros
+            </button>
+        </div>
+    </section>
+
+    <!-- Modal de Filtros Mobile -->
+    <div id="modalFiltros" class="fixed inset-0 bg-black/50 z-50 hidden lg:hidden">
+        <div class="filter-modal fixed bottom-0 left-0 right-0 bg-white rounded-t-3xl shadow-2xl max-h-[80vh] overflow-y-auto">
+            <div class="sticky top-0 bg-white border-b p-4 flex items-center justify-between">
+                <h3 class="text-lg font-bold">Filtros</h3>
+                <button onclick="toggleFilters()" class="p-2 hover:bg-gray-100 rounded-lg">
+                    <i data-lucide="x" class="w-6 h-6"></i>
+                </button>
+            </div>
+            <div class="p-4 space-y-4">
+                <div>
+                    <label class="block text-sm font-medium text-gray-700 mb-2">Marca</label>
+                    <select id="filtroMarcaMobile" class="w-full border border-gray-300 rounded-lg px-3 py-3 text-base">
+                        <option value="">Todas</option>
+                    </select>
+                </div>
+                <div>
+                    <label class="block text-sm font-medium text-gray-700 mb-2">Ano Mínimo</label>
+                    <input type="number" id="filtroAnoMinMobile" placeholder="Ex: 2018" class="w-full border border-gray-300 rounded-lg px-3 py-3 text-base">
+                </div>
+                <div>
+                    <label class="block text-sm font-medium text-gray-700 mb-2">Preço Máximo</label>
+                    <input type="number" id="filtroPrecoMaxMobile" placeholder="Ex: 50000" class="w-full border border-gray-300 rounded-lg px-3 py-3 text-base">
+                </div>
+                <div>
+                    <label class="block text-sm font-medium text-gray-700 mb-2">Câmbio</label>
+                    <select id="filtroCambioMobile" class="w-full border border-gray-300 rounded-lg px-3 py-3 text-base">
+                        <option value="">Todos</option>
+                        <option value="Manual">Manual</option>
+                        <option value="Automático">Automático</option>
+                    </select>
+                </div>
+                <div>
+                    <label class="block text-sm font-medium text-gray-700 mb-2">Combustível</label>
+                    <select id="filtroCombustivelMobile" class="w-full border border-gray-300 rounded-lg px-3 py-3 text-base">
+                        <option value="">Todos</option>
+                        <option value="Flex">Flex</option>
+                        <option value="Gasolina">Gasolina</option>
+                        <option value="Diesel">Diesel</option>
+                        <option value="Elétrico">Elétrico</option>
+                    </select>
+                </div>
+                <div class="flex space-x-3 pt-4">
+                    <button onclick="limparFiltros()" class="flex-1 py-3 border border-gray-300 rounded-lg hover:bg-gray-50 transition font-medium">
+                        Limpar
+                    </button>
+                    <button onclick="aplicarFiltros()" class="flex-1 py-3 bg-purple-600 text-white rounded-lg hover:bg-purple-700 transition font-medium">
+                        Aplicar
+                    </button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- WhatsApp Float Button -->
+    <a href="#" id="whatsappFloat" class="whatsapp-float bg-green-500 text-white p-4 rounded-full shadow-2xl hover:bg-green-600 transition">
+        <i data-lucide="message-circle" class="w-8 h-8"></i>
+    </a>
+
+    <!-- Footer -->
+    <footer class="bg-gray-800 text-white py-8 mt-12">
+        <div class="container mx-auto px-4 text-center">
+            <p class="mb-2">© 2025 <span id="nomeLojaFooter">Auto Premium</span> - Todos os direitos reservados</p>
+            <p class="text-sm text-gray-400">Sistema Profissional de Gestão de Carros Usados</p>
+        </div>
+    </footer>
+
+    <script>
+        // ============================================
+        // CONFIGURAÇÃO DA API
+        // ============================================
+        const API_URL = 'https://script.google.com/macros/s/AKfycbweKB-tmROFFtw9r9iiW8tQF7vW-nyg5xOwvSUgdnXOjZrOTJQq3171_MRe0XoBTSZN/exec';
+        
+        let todosVeiculos = [];
+        let veiculosFiltrados = [];
+        let config = {};
+
+        // ============================================
+        // INICIALIZAÇÃO
+        // ============================================
+        document.addEventListener('DOMContentLoaded', async () => {
+            lucide.createIcons();
+            await carregarConfiguracao();
+            await carregarVeiculos();
+            setupLazyLoad();
+        });
+
+        // ============================================
+        // CARREGAR CONFIGURAÇÃO
+        // ============================================
+        async function carregarConfiguracao() {
+            try {
+                const response = await fetch(`${API_URL}?action=getConfig`);
+                const result = await response.json();
+                
+                if (result.success) {
+                    config = result.data;
+                    document.getElementById('nomeLoja').textContent = config.nome_loja || 'Auto Premium';
+                    document.getElementById('nomeLojaFooter').textContent = config.nome_loja || 'Auto Premium';
+                    document.getElementById('whatsappFloat').href = `https://wa.me/${config.telefone_whatsapp}?text=Olá! Vi o site e gostaria de mais informações.`;
+                }
+            } catch (error) {
+                console.error('Erro ao carregar configuração:', error);
+            }
+        }
+
+        // ============================================
+        // CARREGAR VEÍCULOS
+        // ============================================
+        async function carregarVeiculos() {
+            try {
+                const response = await fetch(`${API_URL}?action=getVeiculos&status=Disponível`);
+                const result = await response.json();
+                
+                if (result.success) {
+                    todosVeiculos = result.data;
+                    veiculosFiltrados = [...todosVeiculos];
+                    
+                    renderizarDestaques();
+                    renderizarVeiculos();
+                    popularFiltros();
+                }
+            } catch (error) {
+                console.error('Erro ao carregar veículos:', error);
+                mostrarErro();
+            }
+        }
+
+        // ============================================
+        // RENDERIZAR DESTAQUES
+        // ============================================
+        function renderizarDestaques() {
+            const destaques = todosVeiculos.filter(v => v.destaque === 'SIM').slice(0, 3);
+            const grid = document.getElementById('destaquesGrid');
+            
+            if (destaques.length === 0) {
+                grid.innerHTML = '<p class="col-span-full text-center text-gray-600">Nenhum destaque no momento</p>';
+                return;
+            }
+
+            grid.innerHTML = destaques.map(veiculo => criarCardVeiculo(veiculo, true)).join('');
+            lucide.createIcons();
+        }
+
+        // ============================================
+        // RENDERIZAR VEÍCULOS
+        // ============================================
+        function renderizarVeiculos() {
+            const grid = document.getElementById('veiculosGrid');
+            const mensagemVazia = document.getElementById('mensagemVazia');
+            
+            if (veiculosFiltrados.length === 0) {
+                grid.innerHTML = '';
+                mensagemVazia.classList.remove('hidden');
+                return;
+            }
+
+            mensagemVazia.classList.add('hidden');
+            grid.innerHTML = veiculosFiltrados.map(veiculo => criarCardVeiculo(veiculo, false)).join('');
+            lucide.createIcons();
+        }
+
+        // ============================================
+        // CRIAR CARD DE VEÍCULO
+        // ============================================
+        function criarCardVeiculo(veiculo, isDestaque) {
+            const imagemUrl = converterImagemDrive(veiculo.imagem_principal);
+            const precoFormatado = formatarMoeda(veiculo.valor_anunciado);
+            
+            return `
+                <div class="bg-white rounded-xl shadow-lg overflow-hidden card-hover cursor-pointer" onclick="verDetalhes(${veiculo.id})">
+                    ${isDestaque ? '<div class="badge-destaque absolute top-4 right-4 z-10 bg-yellow-500 text-white px-3 py-1 rounded-full text-sm font-bold flex items-center"><i data-lucide="star" class="w-4 h-4 mr-1"></i>Destaque</div>' : ''}
+                    
+                    <div class="relative h-48 bg-gray-200">
+                        <img data-src="${imagemUrl}" alt="${veiculo.marca} ${veiculo.modelo}" class="w-full h-full object-cover">
+                        <div class="absolute bottom-0 left-0 right-0 bg-gradient-to-t from-black/60 to-transparent p-4">
+                            <p class="text-white font-bold text-lg">${veiculo.marca} ${veiculo.modelo}</p>
+                        </div>
+                    </div>
+                    
+                    <div class="p-4">
+                        <div class="flex items-center justify-between mb-3">
+                            <span class="text-2xl font-bold text-purple-600">${precoFormatado}</span>
+                        </div>
+                        
+                        <div class="grid grid-cols-2 gap-2 text-sm text-gray-600 mb-4">
+                            <div class="flex items-center">
+                                <i data-lucide="calendar" class="w-4 h-4 mr-1"></i>
+                                ${veiculo.ano}
+                            </div>
+                            <div class="flex items-center">
+                                <i data-lucide="gauge" class="w-4 h-4 mr-1"></i>
+                                ${formatarKm(veiculo.km)} km
+                            </div>
+                            <div class="flex items-center">
+                                <i data-lucide="settings" class="w-4 h-4 mr-1"></i>
+                                ${veiculo.cambio}
+                            </div>
+                            <div class="flex items-center">
+                                <i data-lucide="fuel" class="w-4 h-4 mr-1"></i>
+                                ${veiculo.combustivel}
+                            </div>
+                        </div>
+                        
+                        <button onclick="event.stopPropagation(); contatarWhatsApp(${veiculo.id})" class="w-full bg-green-500 hover:bg-green-600 text-white font-semibold py-3 rounded-lg transition flex items-center justify-center">
+                            <i data-lucide="message-circle" class="w-5 h-5 mr-2"></i>
+                            Tenho Interesse
+                        </button>
+                    </div>
+                </div>
+            `;
+        }
+
+        // ============================================
+        // FILTROS
+        // ============================================
+        function popularFiltros() {
+            const marcas = [...new Set(todosVeiculos.map(v => v.marca))].sort();
+            
+            const selectMarca = document.getElementById('filtroMarca');
+            const selectMarcaMobile = document.getElementById('filtroMarcaMobile');
+            
+            marcas.forEach(marca => {
+                selectMarca.innerHTML += `<option value="${marca}">${marca}</option>`;
+                selectMarcaMobile.innerHTML += `<option value="${marca}">${marca}</option>`;
+            });
+        }
+
+        function toggleFilters() {
+            const modal = document.getElementById('modalFiltros');
+            const filterModal = modal.querySelector('.filter-modal');
+            
+            if (modal.classList.contains('hidden')) {
+                modal.classList.remove('hidden');
+                setTimeout(() => filterModal.classList.add('active'), 10);
+            } else {
+                filterModal.classList.remove('active');
+                setTimeout(() => modal.classList.add('hidden'), 300);
+            }
+        }
+
+        function aplicarFiltros() {
+            const isMobile = window.innerWidth < 1024;
+            
+            const marca = isMobile ? 
+                document.getElementById('filtroMarcaMobile').value : 
+                document.getElementById('filtroMarca').value;
+            
+            const anoMin = isMobile ?
+                document.getElementById('filtroAnoMinMobile').value :
+                document.getElementById('filtroAnoMin').value;
+            
+            const precoMax = isMobile ?
+                document.getElementById('filtroPrecoMaxMobile').value :
+                document.getElementById('filtroPrecoMax').value;
+            
+            const cambio = isMobile ?
+                document.getElementById('filtroCambioMobile').value :
+                document.getElementById('filtroCambio').value;
+            
+            const combustivel = isMobile ?
+                document.getElementById('filtroCombustivelMobile').value :
+                document.getElementById('filtroCombustivel').value;
+
+            veiculosFiltrados = todosVeiculos.filter(veiculo => {
+                if (marca && veiculo.marca !== marca) return false;
+                if (anoMin && veiculo.ano < parseInt(anoMin)) return false;
+                if (precoMax && veiculo.valor_anunciado > parseFloat(precoMax)) return false;
+                if (cambio && veiculo.cambio !== cambio) return false;
+                if (combustivel && veiculo.combustivel !== combustivel) return false;
+                return true;
+            });
+
+            renderizarVeiculos();
+            
+            if (isMobile) {
+                toggleFilters();
+            }
+            
+            scrollToVeiculos();
+        }
+
+        function limparFiltros() {
+            // Desktop
+            document.getElementById('filtroMarca').value = '';
+            document.getElementById('filtroAnoMin').value = '';
+            document.getElementById('filtroPrecoMax').value = '';
+            document.getElementById('filtroCambio').value = '';
+            document.getElementById('filtroCombustivel').value = '';
+            
+            // Mobile
+            document.getElementById('filtroMarcaMobile').value = '';
+            document.getElementById('filtroAnoMinMobile').value = '';
+            document.getElementById('filtroPrecoMaxMobile').value = '';
+            document.getElementById('filtroCambioMobile').value = '';
+            document.getElementById('filtroCombustivelMobile').value = '';
+            
+            veiculosFiltrados = [...todosVeiculos];
+            renderizarVeiculos();
+        }
+
+        // ============================================
+        // NAVEGAÇÃO E WHATSAPP
+        // ============================================
+        function verDetalhes(id) {
+            window.location.href = `detalhes.html?id=${id}`;
+        }
+
+        function contatarWhatsApp(id) {
+            const veiculo = todosVeiculos.find(v => v.id === id);
+            if (!veiculo) return;
+            
+            const mensagem = `Olá! Tenho interesse no veículo:
+*${veiculo.marca} ${veiculo.modelo}*
+Ano: ${veiculo.ano}
+Preço: ${formatarMoeda(veiculo.valor_anunciado)}
+
+Poderia me passar mais informações?`;
+
+            const url = `https://wa.me/${config.telefone_whatsapp}?text=${encodeURIComponent(mensagem)}`;
+            window.open(url, '_blank');
+            
+            // Registrar lead
+            registrarLead(veiculo);
+        }
+
+        async function registrarLead(veiculo) {
+            try {
+                await fetch(`${API_URL}?action=addLead`, {
+                    method: 'POST',
+                    body: JSON.stringify({
+                        nome: '',
+                        telefone: '',
+                        veiculo_interesse: `${veiculo.marca} ${veiculo.modelo} ${veiculo.ano}`,
+                        mensagem: 'Lead via WhatsApp'
+                    })
+                });
+            } catch (error) {
+                console.error('Erro ao registrar lead:', error);
+            }
+        }
+
+        function scrollToVeiculos() {
+            document.getElementById('estoque').scrollIntoView({ behavior: 'smooth' });
+        }
+
+        // ============================================
+        // LAZY LOAD DE IMAGENS
+        // ============================================
+        function setupLazyLoad() {
+            const imageObserver = new IntersectionObserver((entries, observer) => {
+                entries.forEach(entry => {
+                    if (entry.isIntersecting) {
+                        const img = entry.target;
+                        img.src = img.dataset.src;
+                        img.dataset.loaded = "true";
+                        observer.unobserve(img);
+                    }
+                });
+            });
+
+            setInterval(() => {
+                const images = document.querySelectorAll('img[data-src]:not([data-loaded])');
+                images.forEach(img => imageObserver.observe(img));
+            }, 500);
+        }
+
+        // ============================================
+        // UTILITÁRIOS
+        // ============================================
+        function converterImagemDrive(url) {
+            if (!url) return 'https://via.placeholder.com/400x300?text=Sem+Imagem';
+            
+            if (url.includes('drive.google.com')) {
+                const fileId = url.match(/[-\w]{25,}/);
+                if (fileId) {
+                    return `https://drive.google.com/uc?export=view&id=${fileId[0]}`;
+                }
+            }
+            
+            return url;
+        }
+
+        function formatarMoeda(valor) {
+            return new Intl.NumberFormat('pt-BR', {
+                style: 'currency',
+                currency: 'BRL'
+            }).format(valor);
+        }
+
+        function formatarKm(km) {
+            return new Intl.NumberFormat('pt-BR').format(km);
+        }
+
+        function mostrarErro() {
+            document.getElementById('veiculosGrid').innerHTML = `
+                <div class="col-span-full text-center py-12">
+                    <i data-lucide="alert-circle" class="w-16 h-16 mx-auto text-red-500 mb-4"></i>
+                    <p class="text-gray-600 text-lg">Erro ao carregar veículos. Por favor, tente novamente.</p>
+                </div>
+            `;
+            lucide.createIcons();
+        }
+    </script>
+</body>
+</html>

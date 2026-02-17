@@ -1,0 +1,651 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Painel Administrativo - Sistema de Gestão</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script src="https://unpkg.com/lucide@latest"></script>
+    <style>
+        @import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&display=swap');
+        * { font-family: 'Inter', -apple-system, sans-serif; margin: 0; padding: 0; box-sizing: border-box; }
+        .gradient-bg { background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); }
+        .sidebar { transition: transform 0.3s ease; height: 100vh; position: fixed; top: 0; left: 0; width: 256px; background: white; box-shadow: 2px 0 10px rgba(0,0,0,0.1); z-index: 1000; }
+        @media (max-width: 1024px) { .sidebar.closed { transform: translateX(-100%); } }
+        .main-content { margin-left: 256px; min-height: 100vh; }
+        @media (max-width: 1024px) { .main-content { margin-left: 0; } }
+        .tab-content { display: none; }
+        .tab-content.active { display: block; animation: fadeIn 0.3s ease; }
+        @keyframes fadeIn { from { opacity: 0; transform: translateY(10px); } to { opacity: 1; transform: translateY(0); } }
+        .toast { position: fixed; bottom: 20px; right: 20px; z-index: 9999; animation: slideIn 0.3s ease; min-width: 300px; }
+        @keyframes slideIn { from { transform: translateX(400px); } to { transform: translateX(0); } }
+        .dropzone { border: 2px dashed #cbd5e0; transition: all 0.3s ease; cursor: pointer; background: #f7fafc; }
+        .dropzone.dragover { border-color: #667eea; background: #edf2f7; transform: scale(1.02); }
+        .preview-img { width: 120px; height: 120px; object-fit: cover; border-radius: 8px; }
+        .menu-item.active { background: #f3f4f6; color: #667eea; font-weight: 600; }
+        .modal-overlay { backdrop-filter: blur(2px); }
+    </style>
+</head>
+<body class="bg-gray-50">
+    <aside id="sidebar" class="sidebar">
+        <div class="h-full flex flex-col">
+            <div class="gradient-bg p-6 text-white">
+                <div class="flex items-center space-x-3">
+                    <i data-lucide="car" class="w-8 h-8"></i>
+                    <div>
+                        <h1 class="text-xl font-bold" id="nomeLoja">Auto Premium</h1>
+                        <p class="text-xs opacity-90">Painel Admin</p>
+                    </div>
+                </div>
+            </div>
+            <nav class="flex-1 p-4 overflow-y-auto">
+                <button onclick="mostrarAba('dashboard')" class="menu-item active w-full flex items-center space-x-3 px-4 py-3 rounded-lg hover:bg-gray-100 transition text-left mb-2" data-tab="dashboard">
+                    <i data-lucide="layout-dashboard" class="w-5 h-5"></i><span>Dashboard</span>
+                </button>
+                <button onclick="mostrarAba('veiculos')" class="menu-item w-full flex items-center space-x-3 px-4 py-3 rounded-lg hover:bg-gray-100 transition text-left mb-2" data-tab="veiculos">
+                    <i data-lucide="car-front" class="w-5 h-5"></i><span>Veículos</span>
+                </button>
+                <button onclick="mostrarAba('leads')" class="menu-item w-full flex items-center space-x-3 px-4 py-3 rounded-lg hover:bg-gray-100 transition text-left mb-2" data-tab="leads">
+                    <i data-lucide="users" class="w-5 h-5"></i><span>Leads</span>
+                </button>
+                <button onclick="mostrarAba('despesas')" class="menu-item w-full flex items-center space-x-3 px-4 py-3 rounded-lg hover:bg-gray-100 transition text-left mb-2" data-tab="despesas">
+                    <i data-lucide="receipt" class="w-5 h-5"></i><span>Despesas</span>
+                </button>
+            </nav>
+            <div class="p-4 border-t">
+                <button onclick="sair()" class="w-full flex items-center space-x-3 px-4 py-3 rounded-lg hover:bg-red-50 text-red-600 transition">
+                    <i data-lucide="log-out" class="w-5 h-5"></i><span>Sair</span>
+                </button>
+            </div>
+        </div>
+    </aside>
+
+    <div class="main-content">
+        <header class="bg-white shadow-sm sticky top-0 z-30">
+            <div class="px-6 py-4 flex items-center justify-between">
+                <h2 id="tituloAba" class="text-2xl font-bold text-gray-800">Dashboard</h2>
+                <button onclick="carregarDados()" class="p-2 hover:bg-gray-100 rounded-lg transition" title="Atualizar dados">
+                    <i data-lucide="refresh-cw" class="w-5 h-5"></i>
+                </button>
+            </div>
+        </header>
+
+        <main class="p-6">
+            <div id="tab-dashboard" class="tab-content active">
+                <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
+                    <div class="bg-white rounded-xl shadow-lg p-6 hover:shadow-xl transition">
+                        <div class="flex items-center justify-between mb-4">
+                            <div class="bg-blue-100 p-3 rounded-lg"><i data-lucide="car" class="w-6 h-6 text-blue-600"></i></div>
+                        </div>
+                        <p class="text-3xl font-bold text-gray-800" id="statEstoque">0</p>
+                        <p class="text-sm text-gray-600 mt-1">Em Estoque</p>
+                    </div>
+                    <div class="bg-white rounded-xl shadow-lg p-6 hover:shadow-xl transition">
+                        <div class="flex items-center justify-between mb-4">
+                            <div class="bg-green-100 p-3 rounded-lg"><i data-lucide="check-circle" class="w-6 h-6 text-green-600"></i></div>
+                        </div>
+                        <p class="text-3xl font-bold text-gray-800" id="statVendidos">0</p>
+                        <p class="text-sm text-gray-600 mt-1">Vendidos</p>
+                    </div>
+                    <div class="bg-white rounded-xl shadow-lg p-6 hover:shadow-xl transition">
+                        <div class="flex items-center justify-between mb-4">
+                            <div class="bg-purple-100 p-3 rounded-lg"><i data-lucide="dollar-sign" class="w-6 h-6 text-purple-600"></i></div>
+                        </div>
+                        <p class="text-3xl font-bold text-gray-800" id="statLucro">R$ 0</p>
+                        <p class="text-sm text-gray-600 mt-1">Lucro Total</p>
+                    </div>
+                    <div class="bg-white rounded-xl shadow-lg p-6 hover:shadow-xl transition">
+                        <div class="flex items-center justify-between mb-4">
+                            <div class="bg-yellow-100 p-3 rounded-lg"><i data-lucide="users" class="w-6 h-6 text-yellow-600"></i></div>
+                        </div>
+                        <p class="text-3xl font-bold text-gray-800" id="statLeads">0</p>
+                        <p class="text-sm text-gray-600 mt-1">Leads Recebidos</p>
+                    </div>
+                </div>
+            </div>
+
+            <div id="tab-veiculos" class="tab-content">
+                <div class="bg-white rounded-xl shadow-lg p-6">
+                    <div class="flex justify-between items-center mb-6">
+                        <h3 class="text-xl font-bold text-gray-800">Gerenciar Veículos</h3>
+                        <button onclick="abrirModalVeiculo()" class="bg-purple-600 hover:bg-purple-700 text-white px-6 py-3 rounded-lg transition flex items-center shadow-md">
+                            <i data-lucide="plus" class="w-5 h-5 mr-2"></i>Adicionar Veículo
+                        </button>
+                    </div>
+                    <div id="listaVeiculos" class="space-y-4"></div>
+                </div>
+            </div>
+
+            <div id="tab-leads" class="tab-content">
+                <div class="bg-white rounded-xl shadow-lg p-6">
+                    <h3 class="text-xl font-bold text-gray-800 mb-6">Gerenciar Leads</h3>
+                    <div id="listaLeads" class="space-y-4"></div>
+                </div>
+            </div>
+
+            <div id="tab-despesas" class="tab-content">
+                <div class="bg-white rounded-xl shadow-lg p-6">
+                    <div class="flex justify-between items-center mb-6">
+                        <h3 class="text-xl font-bold text-gray-800">Gerenciar Despesas</h3>
+                        <button onclick="abrirModalDespesa()" class="bg-purple-600 hover:bg-purple-700 text-white px-6 py-3 rounded-lg transition flex items-center shadow-md">
+                            <i data-lucide="plus" class="w-5 h-5 mr-2"></i>Adicionar Despesa
+                        </button>
+                    </div>
+                    <div id="listaDespesas" class="space-y-4"></div>
+                </div>
+            </div>
+        </main>
+    </div>
+
+    <div id="modalVeiculo" class="hidden fixed inset-0 bg-black/50 z-50 flex items-center justify-center p-4 modal-overlay">
+        <div class="bg-white rounded-xl max-w-4xl w-full max-h-[90vh] overflow-y-auto shadow-2xl">
+            <div class="p-6 border-b flex justify-between items-center sticky top-0 bg-white z-10">
+                <h3 class="text-2xl font-bold text-gray-800" id="modalVeiculoTitulo">Adicionar Veículo</h3>
+                <button onclick="fecharModalVeiculo()" class="p-2 hover:bg-gray-100 rounded-lg transition">
+                    <i data-lucide="x" class="w-6 h-6"></i>
+                </button>
+            </div>
+            <div class="p-6">
+                <form id="formVeiculo" onsubmit="salvarVeiculo(event)" class="space-y-6">
+                    <input type="hidden" id="veiculoId">
+                    <input type="hidden" id="veiculoPastaId">
+                    <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+                        <div><label class="block text-sm font-medium text-gray-700 mb-2">Marca*</label>
+                            <input type="text" id="marca" required class="w-full border border-gray-300 rounded-lg px-4 py-2 focus:ring-2 focus:ring-purple-600 focus:border-transparent"></div>
+                        <div><label class="block text-sm font-medium text-gray-700 mb-2">Modelo*</label>
+                            <input type="text" id="modelo" required class="w-full border border-gray-300 rounded-lg px-4 py-2 focus:ring-2 focus:ring-purple-600 focus:border-transparent"></div>
+                        <div><label class="block text-sm font-medium text-gray-700 mb-2">Ano*</label>
+                            <input type="number" id="ano" required class="w-full border border-gray-300 rounded-lg px-4 py-2 focus:ring-2 focus:ring-purple-600 focus:border-transparent"></div>
+                        <div><label class="block text-sm font-medium text-gray-700 mb-2">KM*</label>
+                            <input type="number" id="km" required class="w-full border border-gray-300 rounded-lg px-4 py-2 focus:ring-2 focus:ring-purple-600 focus:border-transparent"></div>
+                        <div><label class="block text-sm font-medium text-gray-700 mb-2">Cor*</label>
+                            <input type="text" id="cor" required class="w-full border border-gray-300 rounded-lg px-4 py-2 focus:ring-2 focus:ring-purple-600 focus:border-transparent"></div>
+                        <div><label class="block text-sm font-medium text-gray-700 mb-2">Placa</label>
+                            <input type="text" id="placa" class="w-full border border-gray-300 rounded-lg px-4 py-2 focus:ring-2 focus:ring-purple-600 focus:border-transparent"></div>
+                        <div><label class="block text-sm font-medium text-gray-700 mb-2">Câmbio*</label>
+                            <select id="cambio" required class="w-full border border-gray-300 rounded-lg px-4 py-2 focus:ring-2 focus:ring-purple-600 focus:border-transparent">
+                                <option value="">Selecione</option><option value="Manual">Manual</option><option value="Automático">Automático</option>
+                            </select></div>
+                        <div><label class="block text-sm font-medium text-gray-700 mb-2">Combustível*</label>
+                            <select id="combustivel" required class="w-full border border-gray-300 rounded-lg px-4 py-2 focus:ring-2 focus:ring-purple-600 focus:border-transparent">
+                                <option value="">Selecione</option><option value="Flex">Flex</option><option value="Gasolina">Gasolina</option><option value="Diesel">Diesel</option><option value="Elétrico">Elétrico</option>
+                            </select></div>
+                        <div><label class="block text-sm font-medium text-gray-700 mb-2">Valor Compra*</label>
+                            <input type="number" id="valor_compra" required class="w-full border border-gray-300 rounded-lg px-4 py-2 focus:ring-2 focus:ring-purple-600 focus:border-transparent"></div>
+                        <div><label class="block text-sm font-medium text-gray-700 mb-2">Custos Adicionais</label>
+                            <input type="number" id="custos_adicionais" value="0" class="w-full border border-gray-300 rounded-lg px-4 py-2 focus:ring-2 focus:ring-purple-600 focus:border-transparent"></div>
+                        <div><label class="block text-sm font-medium text-gray-700 mb-2">Valor Anunciado*</label>
+                            <input type="number" id="valor_anunciado" required class="w-full border border-gray-300 rounded-lg px-4 py-2 focus:ring-2 focus:ring-purple-600 focus:border-transparent"></div>
+                        <div><label class="block text-sm font-medium text-gray-700 mb-2">Status*</label>
+                            <select id="status" required class="w-full border border-gray-300 rounded-lg px-4 py-2 focus:ring-2 focus:ring-purple-600 focus:border-transparent">
+                                <option value="Disponível">Disponível</option><option value="Vendido">Vendido</option><option value="Reservado">Reservado</option>
+                            </select></div>
+                    </div>
+                    <div><label class="block text-sm font-medium text-gray-700 mb-2">Descrição</label>
+                        <textarea id="descricao" rows="3" class="w-full border border-gray-300 rounded-lg px-4 py-2 focus:ring-2 focus:ring-purple-600 focus:border-transparent"></textarea></div>
+                    <div><label class="block text-sm font-medium text-gray-700 mb-2">Opcionais (separados por vírgula)</label>
+                        <input type="text" id="opcionais" placeholder="Ar condicionado, Direção hidráulica, Vidros elétricos" class="w-full border border-gray-300 rounded-lg px-4 py-2 focus:ring-2 focus:ring-purple-600 focus:border-transparent"></div>
+                    <div id="uploadSection">
+                        <label class="block text-sm font-medium text-gray-700 mb-2">Fotos do Veículo</label>
+                        <div id="dropzone" class="dropzone rounded-lg p-8 text-center" ondrop="handleDrop(event)" ondragover="handleDragOver(event)" ondragleave="handleDragLeave(event)" onclick="document.getElementById('fileInput').click()">
+                            <i data-lucide="upload-cloud" class="w-12 h-12 mx-auto mb-4 text-gray-400"></i>
+                            <p class="text-gray-600 font-medium">Arraste as fotos aqui ou clique para selecionar</p>
+                            <p class="text-sm text-gray-400 mt-2">JPG, PNG até 10MB cada</p>
+                        </div>
+                        <input type="file" id="fileInput" multiple accept="image/*" class="hidden" onchange="handleFiles(this.files)">
+                        <div id="previewContainer" class="grid grid-cols-2 md:grid-cols-4 gap-4 mt-4"></div>
+                    </div>
+                    <div class="flex justify-end space-x-3 pt-6 border-t">
+                        <button type="button" onclick="fecharModalVeiculo()" class="px-6 py-3 border border-gray-300 rounded-lg hover:bg-gray-50 transition font-medium">Cancelar</button>
+                        <button type="submit" class="px-6 py-3 bg-purple-600 text-white rounded-lg hover:bg-purple-700 transition font-medium shadow-md">Salvar Veículo</button>
+                    </div>
+                </form>
+            </div>
+        </div>
+    </div>
+
+    <div id="modalDespesa" class="hidden fixed inset-0 bg-black/50 z-50 flex items-center justify-center p-4 modal-overlay">
+        <div class="bg-white rounded-xl max-w-md w-full shadow-2xl">
+            <div class="p-6 border-b flex justify-between items-center">
+                <h3 class="text-xl font-bold text-gray-800">Adicionar Despesa</h3>
+                <button onclick="fecharModalDespesa()" class="p-2 hover:bg-gray-100 rounded-lg transition"><i data-lucide="x" class="w-6 h-6"></i></button>
+            </div>
+            <div class="p-6">
+                <form id="formDespesa" onsubmit="salvarDespesa(event)" class="space-y-4">
+                    <div><label class="block text-sm font-medium text-gray-700 mb-2">Descrição*</label>
+                        <input type="text" id="despesa_descricao" required class="w-full border border-gray-300 rounded-lg px-4 py-2 focus:ring-2 focus:ring-purple-600 focus:border-transparent"></div>
+                    <div><label class="block text-sm font-medium text-gray-700 mb-2">Categoria*</label>
+                        <select id="despesa_categoria" required class="w-full border border-gray-300 rounded-lg px-4 py-2 focus:ring-2 focus:ring-purple-600 focus:border-transparent">
+                            <option value="">Selecione</option><option value="Aluguel">Aluguel</option><option value="Água">Água</option><option value="Luz">Luz</option><option value="Internet">Internet</option><option value="Marketing">Marketing</option><option value="Outros">Outros</option>
+                        </select></div>
+                    <div><label class="block text-sm font-medium text-gray-700 mb-2">Valor*</label>
+                        <input type="number" id="despesa_valor" required step="0.01" class="w-full border border-gray-300 rounded-lg px-4 py-2 focus:ring-2 focus:ring-purple-600 focus:border-transparent"></div>
+                    <div class="flex justify-end space-x-3 pt-4 border-t">
+                        <button type="button" onclick="fecharModalDespesa()" class="px-6 py-2 border border-gray-300 rounded-lg hover:bg-gray-50 transition">Cancelar</button>
+                        <button type="submit" class="px-6 py-2 bg-purple-600 text-white rounded-lg hover:bg-purple-700 transition">Salvar</button>
+                    </div>
+                </form>
+            </div>
+        </div>
+    </div>
+
+    <div id="toastContainer"></div>
+
+    <script>
+        const API_URL = 'https://script.google.com/macros/s/AKfycbweKB-tmROFFtw9r9iiW8tQF7vW-nyg5xOwvSUgdnXOjZrOTJQq3171_MRe0XoBTSZN/exec';
+        
+        let todosVeiculos = [];
+        let todosLeads = [];
+        let todasDespesas = [];
+        let imagensSelecionadas = [];
+        let veiculoEditando = null;
+
+        document.addEventListener('DOMContentLoaded', () => {
+            verificarAutenticacao();
+            carregarDados();
+            lucide.createIcons();
+        });
+
+        function verificarAutenticacao() {
+            const auth = localStorage.getItem('admin_autenticado');
+            const timestamp = localStorage.getItem('admin_timestamp');
+            if (!auth || !timestamp || Date.now() - parseInt(timestamp) > 8*60*60*1000) {
+                window.location.href = 'login.html';
+            }
+        }
+
+        async function carregarDados() {
+            mostrarToast('Atualizando dados...', 'info');
+            await Promise.all([carregarDashboard(), carregarVeiculos(), carregarLeads(), carregarDespesas()]);
+            lucide.createIcons();
+        }
+
+        async function carregarDashboard() {
+            try {
+                const res = await fetch(`${API_URL}?action=getDashboard`);
+                const result = await res.json();
+                if (result.success) {
+                    const d = result.data.resumo;
+                    document.getElementById('statEstoque').textContent = d.totalEstoque;
+                    document.getElementById('statVendidos').textContent = d.veiculosVendidos;
+                    document.getElementById('statLucro').textContent = formatarMoeda(d.lucroTotal);
+                    document.getElementById('statLeads').textContent = d.totalLeads;
+                }
+            } catch (e) { console.error('Erro ao carregar dashboard:', e); }
+        }
+
+        async function carregarVeiculos() {
+            try {
+                const res = await fetch(`${API_URL}?action=getVeiculos`);
+                const result = await res.json();
+                if (result.success) {
+                    todosVeiculos = result.data;
+                    renderizarVeiculos();
+                }
+            } catch (e) { mostrarToast('Erro ao carregar veículos', 'error'); }
+        }
+
+        function renderizarVeiculos() {
+            const lista = document.getElementById('listaVeiculos');
+            if (todosVeiculos.length === 0) {
+                lista.innerHTML = '<p class="text-center text-gray-500 py-8">Nenhum veículo cadastrado</p>';
+                return;
+            }
+            lista.innerHTML = todosVeiculos.map(v => `
+                <div class="border border-gray-200 rounded-lg p-4 flex justify-between items-center hover:shadow-md transition">
+                    <div>
+                        <h4 class="font-bold text-lg text-gray-800">${v.marca} ${v.modelo} ${v.ano}</h4>
+                        <p class="text-sm text-gray-600">${formatarKm(v.km)} km • ${v.cambio} • ${v.combustivel}</p>
+                        <p class="text-purple-600 font-bold text-lg mt-1">${formatarMoeda(v.valor_anunciado)}</p>
+                        <span class="inline-block px-3 py-1 rounded-full text-xs font-semibold mt-2 ${v.status==='Disponível'?'bg-green-100 text-green-800':v.status==='Vendido'?'bg-blue-100 text-blue-800':'bg-yellow-100 text-yellow-800'}">${v.status}</span>
+                    </div>
+                    <div class="flex space-x-2">
+                        <button onclick="editarVeiculo(${v.id})" class="p-3 hover:bg-gray-100 rounded-lg transition" title="Editar"><i data-lucide="edit" class="w-5 h-5 text-gray-600"></i></button>
+                        <button onclick="excluirVeiculo(${v.id})" class="p-3 hover:bg-red-100 text-red-600 rounded-lg transition" title="Excluir"><i data-lucide="trash-2" class="w-5 h-5"></i></button>
+                    </div>
+                </div>
+            `).join('');
+            lucide.createIcons();
+        }
+
+        function abrirModalVeiculo() {
+            veiculoEditando = null;
+            document.getElementById('modalVeiculoTitulo').textContent = 'Adicionar Veículo';
+            document.getElementById('formVeiculo').reset();
+            document.getElementById('veiculoId').value = '';
+            imagensSelecionadas = [];
+            document.getElementById('previewContainer').innerHTML = '';
+            document.getElementById('modalVeiculo').classList.remove('hidden');
+            lucide.createIcons();
+        }
+
+        function fecharModalVeiculo() {
+            document.getElementById('modalVeiculo').classList.add('hidden');
+        }
+
+        async function editarVeiculo(id) {
+            veiculoEditando = id;
+            const veiculo = todosVeiculos.find(v => v.id === id);
+            if (!veiculo) return;
+            document.getElementById('modalVeiculoTitulo').textContent = 'Editar Veículo';
+            document.getElementById('veiculoId').value = veiculo.id;
+            document.getElementById('marca').value = veiculo.marca;
+            document.getElementById('modelo').value = veiculo.modelo;
+            document.getElementById('ano').value = veiculo.ano;
+            document.getElementById('km').value = veiculo.km;
+            document.getElementById('cor').value = veiculo.cor;
+            document.getElementById('placa').value = veiculo.placa || '';
+            document.getElementById('cambio').value = veiculo.cambio;
+            document.getElementById('combustivel').value = veiculo.combustivel;
+            document.getElementById('valor_compra').value = veiculo.valor_compra;
+            document.getElementById('custos_adicionais').value = veiculo.custos_adicionais || 0;
+            document.getElementById('valor_anunciado').value = veiculo.valor_anunciado;
+            document.getElementById('status').value = veiculo.status;
+            document.getElementById('descricao').value = veiculo.descricao || '';
+            document.getElementById('opcionais').value = veiculo.opcionais || '';
+            imagensSelecionadas = [];
+            document.getElementById('previewContainer').innerHTML = '';
+            document.getElementById('modalVeiculo').classList.remove('hidden');
+            lucide.createIcons();
+        }
+
+        async function salvarVeiculo(e) {
+            e.preventDefault();
+            const dados = {
+                marca: document.getElementById('marca').value,
+                modelo: document.getElementById('modelo').value,
+                ano: document.getElementById('ano').value,
+                km: document.getElementById('km').value,
+                cor: document.getElementById('cor').value,
+                placa: document.getElementById('placa').value,
+                cambio: document.getElementById('cambio').value,
+                combustivel: document.getElementById('combustivel').value,
+                valor_compra: document.getElementById('valor_compra').value,
+                custos_adicionais: document.getElementById('custos_adicionais').value || 0,
+                valor_anunciado: document.getElementById('valor_anunciado').value,
+                status: document.getElementById('status').value,
+                descricao: document.getElementById('descricao').value,
+                opcionais: document.getElementById('opcionais').value
+            };
+            console.log('💾 Salvando veículo:', dados);
+            try {
+                let action = 'addVeiculo';
+                if (veiculoEditando) {
+                    action = 'updateVeiculo';
+                    dados.id = veiculoEditando;
+                }
+                const res = await fetch(`${API_URL}?action=${action}`, {
+                    method: 'POST',
+                    headers: {'Content-Type': 'application/json'},
+                    body: JSON.stringify(dados)
+                });
+                const result = await res.json();
+                console.log('📊 Resultado do salvamento:', result);
+                if (result.success) {
+                    if (imagensSelecionadas.length > 0 && result.pastaId) {
+                        console.log('📸 Iniciando upload de', imagensSelecionadas.length, 'imagens');
+                        console.log('🗂️ Pasta ID:', result.pastaId);
+                        console.log('📦 Veículo ID:', result.id);
+                        const uploadData = {veiculoId: result.id, pastaId: result.pastaId, imagens: imagensSelecionadas};
+                        console.log('📤 Enviando dados:', JSON.stringify(uploadData));
+                        try {
+                            const uploadRes = await fetch(`${API_URL}?action=uploadMultiplasImagens`, {
+                                method: 'POST',
+                                headers: {'Content-Type': 'application/json'},
+                                body: JSON.stringify(uploadData)
+                            });
+                            const uploadResult = await uploadRes.json();
+                            console.log('📥 Resultado do upload:', uploadResult);
+                            if (uploadResult.success) {
+                                console.log('✅ Upload concluído com sucesso!');
+                                mostrarToast('Veículo e fotos salvos com sucesso!', 'success');
+                            } else {
+                                console.error('❌ Erro no upload:', uploadResult.error);
+                                mostrarToast('Veículo salvo, mas erro ao fazer upload das fotos: ' + uploadResult.error, 'error');
+                            }
+                        } catch (uploadError) {
+                            console.error('❌ Erro ao enviar fotos:', uploadError);
+                            mostrarToast('Veículo salvo, mas erro ao enviar fotos', 'error');
+                        }
+                    } else {
+                        console.log('⚠️ Sem imagens para upload ou editando veículo existente');
+                        mostrarToast(veiculoEditando ? 'Veículo atualizado!' : 'Veículo adicionado!', 'success');
+                    }
+                    fecharModalVeiculo();
+                    await carregarVeiculos();
+                    await carregarDashboard();
+                } else {
+                    mostrarToast('Erro ao salvar veículo: ' + result.error, 'error');
+                }
+            } catch (e) {
+                console.error('❌ Erro:', e);
+                mostrarToast('Erro ao salvar veículo', 'error');
+            }
+        }
+
+        async function excluirVeiculo(id) {
+            if (!confirm('Deseja realmente excluir este veículo?')) return;
+            try {
+                const res = await fetch(`${API_URL}?action=deleteVeiculo`, {method: 'POST', body: JSON.stringify({ id })});
+                const result = await res.json();
+                if (result.success) {
+                    mostrarToast('Veículo excluído!', 'success');
+                    await carregarVeiculos();
+                    await carregarDashboard();
+                }
+            } catch (e) { mostrarToast('Erro ao excluir veículo', 'error'); }
+        }
+
+        function handleDragOver(e) {
+            e.preventDefault();
+            e.stopPropagation();
+            e.currentTarget.classList.add('dragover');
+        }
+
+        function handleDragLeave(e) {
+            e.preventDefault();
+            e.stopPropagation();
+            e.currentTarget.classList.remove('dragover');
+        }
+
+        function handleDrop(e) {
+            e.preventDefault();
+            e.stopPropagation();
+            e.currentTarget.classList.remove('dragover');
+            const files = e.dataTransfer.files;
+            handleFiles(files);
+        }
+
+        function handleFiles(files) {
+            Array.from(files).forEach((file, index) => {
+                if (!file.type.startsWith('image/')) return;
+                const reader = new FileReader();
+                reader.onload = (e) => {
+                    imagensSelecionadas.push({
+                        nome: file.name,
+                        base64: e.target.result,
+                        isPrincipal: imagensSelecionadas.length === 0
+                    });
+                    renderizarPreviews();
+                };
+                reader.readAsDataURL(file);
+            });
+        }
+
+        function renderizarPreviews() {
+            const container = document.getElementById('previewContainer');
+            container.innerHTML = imagensSelecionadas.map((img, idx) => `
+                <div class="relative group">
+                    <img src="${img.base64}" class="preview-img shadow-md">
+                    <button type="button" onclick="removerImagem(${idx})" class="absolute top-2 right-2 bg-red-500 hover:bg-red-600 text-white rounded-full w-8 h-8 flex items-center justify-center shadow-lg opacity-0 group-hover:opacity-100 transition">×</button>
+                    ${img.isPrincipal ? '<span class="absolute bottom-2 left-2 bg-purple-600 text-white text-xs px-3 py-1 rounded-full shadow-md font-semibold">Principal</span>' : ''}
+                </div>
+            `).join('');
+        }
+
+        function removerImagem(idx) {
+            imagensSelecionadas.splice(idx, 1);
+            if (imagensSelecionadas.length > 0 && !imagensSelecionadas.some(i => i.isPrincipal)) {
+                imagensSelecionadas[0].isPrincipal = true;
+            }
+            renderizarPreviews();
+        }
+
+        async function carregarLeads() {
+            try {
+                const res = await fetch(`${API_URL}?action=getLeads`);
+                const result = await res.json();
+                if (result.success) {
+                    todosLeads = result.data;
+                    renderizarLeads();
+                }
+            } catch (e) { mostrarToast('Erro ao carregar leads', 'error'); }
+        }
+
+        function renderizarLeads() {
+            const lista = document.getElementById('listaLeads');
+            if (todosLeads.length === 0) {
+                lista.innerHTML = '<p class="text-center text-gray-500 py-8">Nenhum lead recebido</p>';
+                return;
+            }
+            lista.innerHTML = todosLeads.map(l => `
+                <div class="border border-gray-200 rounded-lg p-4 hover:shadow-md transition">
+                    <div class="flex justify-between items-start">
+                        <div class="flex-1">
+                            <h4 class="font-bold text-gray-800">${l.veiculo_interesse}</h4>
+                            <p class="text-sm text-gray-600 mt-1">${l.telefone || 'Sem telefone'}</p>
+                            <p class="text-xs text-gray-400 mt-1">${new Date(l.data_hora).toLocaleString('pt-BR')}</p>
+                        </div>
+                        <select onchange="atualizarStatusLead(${l.id}, this.value)" class="border border-gray-300 rounded-lg px-3 py-2 text-sm focus:ring-2 focus:ring-purple-600 focus:border-transparent">
+                            <option value="Novo" ${l.status==='Novo'?'selected':''}>Novo</option>
+                            <option value="Contatado" ${l.status==='Contatado'?'selected':''}>Contatado</option>
+                            <option value="Negociando" ${l.status==='Negociando'?'selected':''}>Negociando</option>
+                            <option value="Convertido" ${l.status==='Convertido'?'selected':''}>Convertido</option>
+                            <option value="Perdido" ${l.status==='Perdido'?'selected':''}>Perdido</option>
+                        </select>
+                    </div>
+                </div>
+            `).join('');
+        }
+
+        async function atualizarStatusLead(id, status) {
+            try {
+                const res = await fetch(`${API_URL}?action=updateLead`, {method: 'POST', body: JSON.stringify({ id, status })});
+                const result = await res.json();
+                if (result.success) {
+                    mostrarToast('Lead atualizado!', 'success');
+                    await carregarLeads();
+                    await carregarDashboard();
+                }
+            } catch (e) { mostrarToast('Erro ao atualizar lead', 'error'); }
+        }
+
+        async function carregarDespesas() {
+            try {
+                const res = await fetch(`${API_URL}?action=getDespesas`);
+                const result = await res.json();
+                if (result.success) {
+                    todasDespesas = result.data;
+                    renderizarDespesas();
+                }
+            } catch (e) { mostrarToast('Erro ao carregar despesas', 'error'); }
+        }
+
+        function renderizarDespesas() {
+            const lista = document.getElementById('listaDespesas');
+            if (todasDespesas.length === 0) {
+                lista.innerHTML = '<p class="text-center text-gray-500 py-8">Nenhuma despesa cadastrada</p>';
+                return;
+            }
+            lista.innerHTML = todasDespesas.map(d => `
+                <div class="border border-gray-200 rounded-lg p-4 flex justify-between items-center hover:shadow-md transition">
+                    <div>
+                        <h4 class="font-bold text-gray-800">${d.descricao}</h4>
+                        <p class="text-sm text-gray-600">${d.categoria}</p>
+                        <p class="text-purple-600 font-bold text-lg mt-1">${formatarMoeda(d.valor)}</p>
+                    </div>
+                    <button onclick="excluirDespesa(${d.id})" class="p-3 hover:bg-red-100 text-red-600 rounded-lg transition"><i data-lucide="trash-2" class="w-5 h-5"></i></button>
+                </div>
+            `).join('');
+            lucide.createIcons();
+        }
+
+        function abrirModalDespesa() {
+            document.getElementById('formDespesa').reset();
+            document.getElementById('modalDespesa').classList.remove('hidden');
+        }
+
+        function fecharModalDespesa() {
+            document.getElementById('modalDespesa').classList.add('hidden');
+        }
+
+        async function salvarDespesa(e) {
+            e.preventDefault();
+            const dados = {
+                descricao: document.getElementById('despesa_descricao').value,
+                categoria: document.getElementById('despesa_categoria').value,
+                valor: document.getElementById('despesa_valor').value
+            };
+            try {
+                const res = await fetch(`${API_URL}?action=addDespesa`, {method: 'POST', body: JSON.stringify(dados)});
+                const result = await res.json();
+                if (result.success) {
+                    mostrarToast('Despesa adicionada!', 'success');
+                    fecharModalDespesa();
+                    await carregarDespesas();
+                    await carregarDashboard();
+                }
+            } catch (e) { mostrarToast('Erro ao adicionar despesa', 'error'); }
+        }
+
+        async function excluirDespesa(id) {
+            if (!confirm('Deseja realmente excluir esta despesa?')) return;
+            try {
+                const res = await fetch(`${API_URL}?action=deleteDespesa`, {method: 'POST', body: JSON.stringify({ id })});
+                const result = await res.json();
+                if (result.success) {
+                    mostrarToast('Despesa excluída!', 'success');
+                    await carregarDespesas();
+                    await carregarDashboard();
+                }
+            } catch (e) { mostrarToast('Erro ao excluir despesa', 'error'); }
+        }
+
+        function mostrarAba(aba) {
+            document.querySelectorAll('.tab-content').forEach(t => t.classList.remove('active'));
+            document.getElementById(`tab-${aba}`).classList.add('active');
+            document.querySelectorAll('.menu-item').forEach(m => m.classList.remove('active'));
+            document.querySelector(`[data-tab="${aba}"]`).classList.add('active');
+            const titulos = {dashboard: 'Dashboard', veiculos: 'Veículos', leads: 'Leads', despesas: 'Despesas'};
+            document.getElementById('tituloAba').textContent = titulos[aba];
+            lucide.createIcons();
+        }
+
+        function sair() {
+            if (confirm('Deseja realmente sair?')) {
+                localStorage.removeItem('admin_autenticado');
+                localStorage.removeItem('admin_timestamp');
+                window.location.href = 'login.html';
+            }
+        }
+
+        function mostrarToast(msg, tipo) {
+            const cores = {success: 'bg-green-500', error: 'bg-red-500', info: 'bg-blue-500'};
+            const toast = document.createElement('div');
+            toast.className = `toast ${cores[tipo] || 'bg-gray-500'} text-white px-6 py-4 rounded-lg shadow-2xl flex items-center space-x-3`;
+            toast.innerHTML = `<i data-lucide="${tipo === 'success' ? 'check-circle' : tipo === 'error' ? 'alert-circle' : 'info'}" class="w-5 h-5"></i><span>${msg}</span>`;
+            document.getElementById('toastContainer').appendChild(toast);
+            lucide.createIcons();
+            setTimeout(() => toast.remove(), 3000);
+        }
+
+        function formatarMoeda(valor) {
+            return new Intl.NumberFormat('pt-BR', {style: 'currency', currency: 'BRL'}).format(valor || 0);
+        }
+
+        function formatarKm(km) {
+            return new Intl.NumberFormat('pt-BR').format(km || 0);
+        }
+    </script>
+</body>
+</html>
