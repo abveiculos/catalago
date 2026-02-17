@@ -577,16 +577,20 @@ Poderia me passar mais informações?`;
             if (!url || url === '' || url === 'undefined') {
                 return 'https://placehold.co/400x300/e2e8f0/94a3b8?text=Sem+Foto';
             }
-            // Se já está no formato correto de visualização, usa direto
-            if (url.includes('export=view')) return url;
-            // Se é link de pasta (não de arquivo), retorna placeholder
+            // Se é link de pasta, retorna placeholder
             if (url.includes('/folders/')) return 'https://placehold.co/400x300/e2e8f0/94a3b8?text=Sem+Foto';
+            
             // Extrai o ID do arquivo do Drive
+            let fileId = null;
             if (url.includes('drive.google.com')) {
                 const match = url.match(/[-\w]{25,}/);
-                if (match) return 'https://drive.google.com/uc?export=view&id=' + match[0];
+                if (match) fileId = match[0];
             }
-            return url;
+            
+            if (!fileId) return 'https://placehold.co/400x300/e2e8f0/94a3b8?text=Sem+Foto';
+            
+            // USA THUMBNAIL DO DRIVE (não tem bloqueio CORB!)
+            return 'https://drive.google.com/thumbnail?id=' + fileId + '&sz=w800';
         }
 
         function formatarMoeda(valor) {
