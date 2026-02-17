@@ -274,7 +274,7 @@
         // ============================================
         // CONFIGURAÇÃO DA API
         // ============================================
-        const API_URL = 'https://script.google.com/macros/s/AKfycbyyvrlTy9iOxBY-RHUCp2k_AfuU12KSO1B2LTjXr5KaFqTJ6TGSqFQL8uLctB_MkSM3/exec';
+        const API_URL = 'https://script.google.com/macros/s/AKfycbweKB-tmROFFtw9r9iiW8tQF7vW-nyg5xOwvSUgdnXOjZrOTJQq3171_MRe0XoBTSZN/exec';
         
         let todosVeiculos = [];
         let veiculosFiltrados = [];
@@ -377,7 +377,7 @@
                     ${isDestaque ? '<div class="badge-destaque absolute top-4 right-4 z-10 bg-yellow-500 text-white px-3 py-1 rounded-full text-sm font-bold flex items-center"><i data-lucide="star" class="w-4 h-4 mr-1"></i>Destaque</div>' : ''}
                     
                     <div class="relative h-48 bg-gray-200">
-                        <img data-src="${imagemUrl}" alt="${veiculo.marca} ${veiculo.modelo}" class="w-full h-full object-cover">
+                        <img src="${imagemUrl}" alt="${veiculo.marca} ${veiculo.modelo}" class="w-full h-full object-cover" onerror="this.src='https://placehold.co/400x300/e2e8f0/94a3b8?text=Sem+Foto'">
                         <div class="absolute bottom-0 left-0 right-0 bg-gradient-to-t from-black/60 to-transparent p-4">
                             <p class="text-white font-bold text-lg">${veiculo.marca} ${veiculo.modelo}</p>
                         </div>
@@ -574,15 +574,18 @@ Poderia me passar mais informações?`;
         // UTILITÁRIOS
         // ============================================
         function converterImagemDrive(url) {
-            if (!url) return 'https://via.placeholder.com/400x300?text=Sem+Imagem';
-            
-            if (url.includes('drive.google.com')) {
-                const fileId = url.match(/[-\w]{25,}/);
-                if (fileId) {
-                    return `https://drive.google.com/uc?export=view&id=${fileId[0]}`;
-                }
+            if (!url || url === '' || url === 'undefined') {
+                return 'https://placehold.co/400x300/e2e8f0/94a3b8?text=Sem+Foto';
             }
-            
+            // Se já está no formato correto de visualização, usa direto
+            if (url.includes('export=view')) return url;
+            // Se é link de pasta (não de arquivo), retorna placeholder
+            if (url.includes('/folders/')) return 'https://placehold.co/400x300/e2e8f0/94a3b8?text=Sem+Foto';
+            // Extrai o ID do arquivo do Drive
+            if (url.includes('drive.google.com')) {
+                const match = url.match(/[-\w]{25,}/);
+                if (match) return 'https://drive.google.com/uc?export=view&id=' + match[0];
+            }
             return url;
         }
 
