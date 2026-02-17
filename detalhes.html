@@ -1,0 +1,417 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Detalhes do Veículo</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script src="https://unpkg.com/lucide@latest"></script>
+    <style>
+        @import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&display=swap');
+        * { font-family: 'Inter', sans-serif; }
+        .gradient-bg { background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); }
+        .thumb { cursor: pointer; transition: all 0.2s; border: 3px solid transparent; }
+        .thumb:hover { transform: scale(1.05); }
+        .thumb.active { border-color: #667eea; }
+        .foto-principal { transition: opacity 0.2s; }
+        .foto-principal.loading { opacity: 0.4; }
+        .skeleton { background: linear-gradient(90deg, #f0f0f0 25%, #e0e0e0 50%, #f0f0f0 75%); background-size: 200% 100%; animation: shimmer 1.5s infinite; }
+        @keyframes shimmer { 0% { background-position: 200% 0; } 100% { background-position: -200% 0; } }
+        .whatsapp-float { position: fixed; bottom: 20px; right: 20px; z-index: 1000; }
+        .card-outros:hover { transform: translateY(-4px); }
+        .card-outros { transition: all 0.2s; }
+    </style>
+</head>
+<body class="bg-gray-50 min-h-screen">
+
+    <!-- Header -->
+    <header class="gradient-bg text-white shadow-lg sticky top-0 z-50">
+        <div class="max-w-6xl mx-auto px-4 py-4 flex items-center justify-between">
+            <a href="index.html" class="flex items-center space-x-3 hover:opacity-90 transition">
+                <i data-lucide="arrow-left" class="w-6 h-6"></i>
+                <div>
+                    <h1 class="text-xl font-bold" id="nomeLoja">Auto Premium</h1>
+                    <p class="text-xs opacity-80">Carros Seminovos</p>
+                </div>
+            </a>
+            <a href="index.html" class="text-sm opacity-80 hover:opacity-100 transition flex items-center gap-1">
+                <i data-lucide="car" class="w-4 h-4"></i>
+                Ver Estoque
+            </a>
+        </div>
+    </header>
+
+    <!-- Loading skeleton -->
+    <div id="loading" class="max-w-6xl mx-auto px-4 py-8">
+        <div class="skeleton h-10 w-64 rounded-lg mb-4"></div>
+        <div class="grid grid-cols-1 lg:grid-cols-2 gap-8">
+            <div class="skeleton h-96 rounded-xl"></div>
+            <div class="space-y-4">
+                <div class="skeleton h-32 rounded-xl"></div>
+                <div class="skeleton h-48 rounded-xl"></div>
+                <div class="skeleton h-16 rounded-xl"></div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Conteúdo principal -->
+    <main id="conteudo" class="hidden max-w-6xl mx-auto px-4 py-8">
+
+        <!-- Breadcrumb -->
+        <nav class="flex items-center gap-2 text-sm text-gray-500 mb-6">
+            <a href="index.html" class="hover:text-purple-600 transition">Início</a>
+            <i data-lucide="chevron-right" class="w-4 h-4"></i>
+            <a href="index.html" class="hover:text-purple-600 transition">Estoque</a>
+            <i data-lucide="chevron-right" class="w-4 h-4"></i>
+            <span id="breadcrumbVeiculo" class="text-gray-800 font-medium"></span>
+        </nav>
+
+        <div class="grid grid-cols-1 lg:grid-cols-2 gap-8">
+
+            <!-- ===== GALERIA ===== -->
+            <div>
+                <!-- Foto principal -->
+                <div class="relative bg-gray-100 rounded-2xl overflow-hidden shadow-md" style="height:400px">
+                    <img id="fotoPrincipal" src="" alt="Foto principal"
+                         class="w-full h-full object-cover foto-principal"
+                         onerror="this.src='https://placehold.co/800x500/e2e8f0/94a3b8?text=Sem+Foto'">
+
+                    <!-- Botões de navegação -->
+                    <button id="btnAnterior" onclick="navegarFoto(-1)"
+                        class="hidden absolute left-3 top-1/2 -translate-y-1/2 bg-black/50 hover:bg-black/75 text-white rounded-full w-11 h-11 items-center justify-center transition">
+                        <i data-lucide="chevron-left" class="w-6 h-6"></i>
+                    </button>
+                    <button id="btnProximo" onclick="navegarFoto(1)"
+                        class="hidden absolute right-3 top-1/2 -translate-y-1/2 bg-black/50 hover:bg-black/75 text-white rounded-full w-11 h-11 items-center justify-center transition">
+                        <i data-lucide="chevron-right" class="w-6 h-6"></i>
+                    </button>
+
+                    <!-- Contador -->
+                    <div id="contadorFotos" class="hidden absolute bottom-3 right-3 bg-black/60 text-white text-xs px-3 py-1 rounded-full">
+                        <span id="fotoAtual">1</span> / <span id="totalFotos">1</span>
+                    </div>
+                </div>
+
+                <!-- Miniaturas -->
+                <div id="miniaturas" class="grid grid-cols-5 gap-2 mt-3"></div>
+            </div>
+
+            <!-- ===== INFORMAÇÕES ===== -->
+            <div class="flex flex-col gap-4">
+
+                <!-- Título e preço -->
+                <div class="bg-white rounded-2xl p-6 shadow-sm">
+                    <div class="flex items-start justify-between mb-1">
+                        <h2 id="tituloVeiculo" class="text-3xl font-bold text-gray-800"></h2>
+                        <span id="badgeDestaque" class="hidden bg-yellow-400 text-yellow-900 text-xs font-bold px-3 py-1 rounded-full ml-2 flex-shrink-0">⭐ Destaque</span>
+                    </div>
+                    <p id="anoKm" class="text-gray-500 mb-4"></p>
+                    <p id="preco" class="text-4xl font-bold text-purple-600"></p>
+                </div>
+
+                <!-- Especificações -->
+                <div class="bg-white rounded-2xl p-6 shadow-sm">
+                    <h3 class="font-bold text-gray-700 mb-4 flex items-center gap-2">
+                        <i data-lucide="list" class="w-5 h-5 text-purple-600"></i>
+                        Especificações
+                    </h3>
+                    <div id="specs" class="grid grid-cols-2 gap-3"></div>
+                </div>
+
+                <!-- CTA -->
+                <button onclick="contatarWhatsApp()"
+                    class="w-full bg-green-500 hover:bg-green-600 active:bg-green-700 text-white font-bold py-4 rounded-2xl transition shadow-lg text-lg flex items-center justify-center gap-2">
+                    <i data-lucide="message-circle" class="w-6 h-6"></i>
+                    Tenho Interesse — WhatsApp
+                </button>
+
+                <a href="index.html"
+                   class="w-full text-center border-2 border-purple-300 text-purple-600 hover:bg-purple-50 font-semibold py-3 rounded-2xl transition block">
+                    ← Ver outros veículos
+                </a>
+            </div>
+        </div>
+
+        <!-- Descrição + Opcionais -->
+        <div class="grid grid-cols-1 lg:grid-cols-2 gap-6 mt-8">
+            <div id="secaoDescricao" class="hidden bg-white rounded-2xl p-6 shadow-sm">
+                <h3 class="font-bold text-gray-700 mb-3 flex items-center gap-2">
+                    <i data-lucide="file-text" class="w-5 h-5 text-purple-600"></i>
+                    Descrição
+                </h3>
+                <p id="descricao" class="text-gray-600 leading-relaxed whitespace-pre-line"></p>
+            </div>
+            <div id="secaoOpcionais" class="hidden bg-white rounded-2xl p-6 shadow-sm">
+                <h3 class="font-bold text-gray-700 mb-4 flex items-center gap-2">
+                    <i data-lucide="check-circle" class="w-5 h-5 text-purple-600"></i>
+                    Opcionais
+                </h3>
+                <div id="opcionais" class="flex flex-wrap gap-2"></div>
+            </div>
+        </div>
+
+        <!-- Outros veículos -->
+        <div id="secaoOutros" class="hidden mt-12">
+            <h3 class="text-xl font-bold text-gray-800 mb-6">Outros Veículos Disponíveis</h3>
+            <div id="outrosVeiculos" class="grid grid-cols-1 md:grid-cols-3 gap-6"></div>
+        </div>
+
+    </main>
+
+    <!-- Erro -->
+    <div id="erro" class="hidden max-w-2xl mx-auto px-4 py-24 text-center">
+        <i data-lucide="car" class="w-20 h-20 mx-auto text-gray-300 mb-6"></i>
+        <h2 class="text-2xl font-bold text-gray-700 mb-2">Veículo não encontrado</h2>
+        <p class="text-gray-500 mb-8">Este veículo pode ter sido vendido ou removido do estoque.</p>
+        <a href="index.html" class="bg-purple-600 hover:bg-purple-700 text-white font-bold py-3 px-10 rounded-xl transition inline-flex items-center gap-2">
+            <i data-lucide="arrow-left" class="w-5 h-5"></i>
+            Ver Estoque Completo
+        </a>
+    </div>
+
+    <!-- WhatsApp flutuante -->
+    <a id="whatsappFloat" href="#" target="_blank"
+       class="whatsapp-float w-16 h-16 bg-green-500 hover:bg-green-600 rounded-full flex items-center justify-center shadow-2xl transition">
+        <i data-lucide="message-circle" class="w-8 h-8 text-white"></i>
+    </a>
+
+    <script>
+        // ============================================
+        // ⚠️ ATUALIZE A URL DA API ABAIXO
+        // ============================================
+        const API_URL = 'https://script.google.com/macros/s/AKfycbweKB-tmROFFtw9r9iiW8tQF7vW-nyg5xOwvSUgdnXOjZrOTJQq3171_MRe0XoBTSZN/exec';
+
+        let veiculo = null;
+        let todasImagens = [];
+        let indexAtual = 0;
+        let config = {};
+
+        // ============================================
+        // INICIALIZAÇÃO
+        // ============================================
+        document.addEventListener('DOMContentLoaded', async () => {
+            lucide.createIcons();
+            const id = new URLSearchParams(window.location.search).get('id');
+            if (!id) { mostrarErro(); return; }
+            await Promise.all([carregarConfig(), carregarVeiculo(id)]);
+            lucide.createIcons();
+        });
+
+        async function carregarConfig() {
+            try {
+                const r = await (await fetch(`${API_URL}?action=getConfig`)).json();
+                if (r.success) {
+                    config = r.data;
+                    document.getElementById('nomeLoja').textContent = config.nome_loja || 'Auto Premium';
+                    document.getElementById('whatsappFloat').href =
+                        `https://wa.me/${config.telefone_whatsapp}?text=Olá! Gostaria de informações sobre um veículo.`;
+                }
+            } catch(e) {}
+        }
+
+        async function carregarVeiculo(id) {
+            try {
+                const r = await (await fetch(`${API_URL}?action=getVeiculo&id=${id}`)).json();
+                if (!r.success || !r.data) { mostrarErro(); return; }
+                veiculo = r.data;
+                renderizarVeiculo();
+                carregarOutros(id);
+            } catch(e) { console.error(e); mostrarErro(); }
+        }
+
+        // ============================================
+        // RENDERIZAÇÃO
+        // ============================================
+        function renderizarVeiculo() {
+            const titulo = `${veiculo.marca} ${veiculo.modelo}`;
+            document.title = `${titulo} ${veiculo.ano} — ${config.nome_loja || 'Auto Premium'}`;
+
+            document.getElementById('tituloVeiculo').textContent = titulo;
+            document.getElementById('breadcrumbVeiculo').textContent = `${titulo} ${veiculo.ano}`;
+            document.getElementById('anoKm').textContent = `${veiculo.ano}  •  ${formatarKm(veiculo.km)} km  •  ${veiculo.cor || ''}`;
+            document.getElementById('preco').textContent = formatarMoeda(veiculo.valor_anunciado);
+
+            if (veiculo.destaque === 'SIM') {
+                document.getElementById('badgeDestaque').classList.remove('hidden');
+                document.getElementById('badgeDestaque').classList.add('flex');
+            }
+
+            // ---- IMAGENS ----
+            todasImagens = [];
+
+            // Imagem principal (coluna W da planilha)
+            const principal = converterUrl(veiculo.imagem_principal);
+            if (principal) todasImagens.push(principal);
+
+            // Demais imagens da pasta Drive
+            if (Array.isArray(veiculo.imagens)) {
+                veiculo.imagens.forEach(img => {
+                    const u = converterUrl(img.url || img);
+                    if (u && !todasImagens.includes(u)) todasImagens.push(u);
+                });
+            }
+
+            if (todasImagens.length === 0) {
+                todasImagens.push('https://placehold.co/800x500/e2e8f0/94a3b8?text=Sem+Foto');
+            }
+
+            montarGaleria();
+
+            // ---- SPECS ----
+            const specs = [
+                { icon: 'calendar',      label: 'Ano',          val: veiculo.ano },
+                { icon: 'gauge',         label: 'Quilometragem', val: formatarKm(veiculo.km) + ' km' },
+                { icon: 'settings',      label: 'Câmbio',        val: veiculo.cambio },
+                { icon: 'fuel',          label: 'Combustível',   val: veiculo.combustivel },
+                { icon: 'palette',       label: 'Cor',           val: veiculo.cor },
+                { icon: 'credit-card',   label: 'Placa',         val: veiculo.placa || '—' },
+            ];
+            document.getElementById('specs').innerHTML = specs.map(s => `
+                <div class="flex items-center gap-3 bg-gray-50 rounded-xl p-3">
+                    <div class="bg-purple-100 rounded-lg p-2 flex-shrink-0">
+                        <i data-lucide="${s.icon}" class="w-4 h-4 text-purple-600"></i>
+                    </div>
+                    <div>
+                        <p class="text-xs text-gray-400">${s.label}</p>
+                        <p class="font-semibold text-gray-800 text-sm">${s.val || '—'}</p>
+                    </div>
+                </div>
+            `).join('');
+
+            // ---- DESCRIÇÃO ----
+            if (veiculo.descricao && String(veiculo.descricao).trim()) {
+                document.getElementById('descricao').textContent = veiculo.descricao;
+                document.getElementById('secaoDescricao').classList.remove('hidden');
+            }
+
+            // ---- OPCIONAIS ----
+            if (veiculo.opcionais && String(veiculo.opcionais).trim()) {
+                const itens = String(veiculo.opcionais).split(',').map(s => s.trim()).filter(Boolean);
+                if (itens.length > 0) {
+                    document.getElementById('opcionais').innerHTML = itens.map(o => `
+                        <span class="bg-purple-50 border border-purple-200 text-purple-700 px-3 py-1 rounded-full text-sm flex items-center gap-1">
+                            <i data-lucide="check" class="w-3 h-3"></i>${o}
+                        </span>
+                    `).join('');
+                    document.getElementById('secaoOpcionais').classList.remove('hidden');
+                }
+            }
+
+            document.getElementById('loading').classList.add('hidden');
+            document.getElementById('conteudo').classList.remove('hidden');
+            lucide.createIcons();
+        }
+
+        // ============================================
+        // GALERIA
+        // ============================================
+        function montarGaleria() {
+            document.getElementById('fotoPrincipal').src = todasImagens[0];
+            indexAtual = 0;
+
+            const temVarias = todasImagens.length > 1;
+
+            if (temVarias) {
+                document.getElementById('contadorFotos').classList.remove('hidden');
+                document.getElementById('totalFotos').textContent = todasImagens.length;
+                document.getElementById('fotoAtual').textContent = 1;
+                document.getElementById('btnAnterior').classList.remove('hidden');
+                document.getElementById('btnAnterior').classList.add('flex');
+                document.getElementById('btnProximo').classList.remove('hidden');
+                document.getElementById('btnProximo').classList.add('flex');
+
+                document.getElementById('miniaturas').innerHTML = todasImagens.map((url, idx) => `
+                    <div onclick="irParaFoto(${idx})"
+                         class="thumb rounded-xl overflow-hidden aspect-square bg-gray-200 ${idx === 0 ? 'active' : ''}">
+                        <img src="${url}" class="w-full h-full object-cover"
+                             onerror="this.src='https://placehold.co/120x120/e2e8f0/94a3b8?text=?'">
+                    </div>
+                `).join('');
+            }
+        }
+
+        function irParaFoto(idx) {
+            indexAtual = idx;
+            const img = document.getElementById('fotoPrincipal');
+            img.classList.add('loading');
+            img.src = todasImagens[idx];
+            img.onload  = () => img.classList.remove('loading');
+            img.onerror = () => { img.src = 'https://placehold.co/800x500/e2e8f0/94a3b8?text=Sem+Foto'; img.classList.remove('loading'); };
+            document.getElementById('fotoAtual').textContent = idx + 1;
+            document.querySelectorAll('.thumb').forEach((t, i) => t.classList.toggle('active', i === idx));
+        }
+
+        function navegarFoto(dir) {
+            irParaFoto((indexAtual + dir + todasImagens.length) % todasImagens.length);
+        }
+
+        // ============================================
+        // OUTROS VEÍCULOS
+        // ============================================
+        async function carregarOutros(idAtual) {
+            try {
+                const r = await (await fetch(`${API_URL}?action=getVeiculos&status=Disponível`)).json();
+                if (!r.success) return;
+                const outros = r.data.filter(v => String(v.id) !== String(idAtual)).slice(0, 3);
+                if (outros.length === 0) return;
+
+                document.getElementById('outrosVeiculos').innerHTML = outros.map(v => `
+                    <div onclick="window.location.href='detalhes.html?id=${v.id}'"
+                         class="card-outros bg-white rounded-2xl shadow-md overflow-hidden cursor-pointer">
+                        <div class="h-44 bg-gray-100 overflow-hidden">
+                            <img src="${converterUrl(v.imagem_principal)}"
+                                 alt="${v.marca} ${v.modelo}"
+                                 class="w-full h-full object-cover"
+                                 onerror="this.src='https://placehold.co/400x280/e2e8f0/94a3b8?text=Sem+Foto'">
+                        </div>
+                        <div class="p-4">
+                            <p class="font-bold text-gray-800">${v.marca} ${v.modelo}</p>
+                            <p class="text-sm text-gray-500 mt-1">${v.ano}  •  ${formatarKm(v.km)} km</p>
+                            <p class="text-purple-600 font-bold text-lg mt-2">${formatarMoeda(v.valor_anunciado)}</p>
+                        </div>
+                    </div>
+                `).join('');
+
+                document.getElementById('secaoOutros').classList.remove('hidden');
+                lucide.createIcons();
+            } catch(e) {}
+        }
+
+        // ============================================
+        // WHATSAPP
+        // ============================================
+        function contatarWhatsApp() {
+            if (!veiculo) return;
+            const msg = `Olá! Tenho interesse no veículo:\n*${veiculo.marca} ${veiculo.modelo} ${veiculo.ano}*\nKm: ${formatarKm(veiculo.km)}\nPreço: ${formatarMoeda(veiculo.valor_anunciado)}\n\nPoderia me dar mais informações?`;
+            window.open(`https://wa.me/${config.telefone_whatsapp || ''}?text=${encodeURIComponent(msg)}`, '_blank');
+        }
+
+        // ============================================
+        // UTILITÁRIOS
+        // ============================================
+        function converterUrl(url) {
+            if (!url || url === '' || url === 'undefined' || url === 'null') return '';
+            if (url.includes('export=view')) return url;
+            if (url.includes('/folders/')) return '';
+            if (url.includes('drive.google.com')) {
+                const m = url.match(/[-\w]{25,}/);
+                if (m) return `https://drive.google.com/uc?export=view&id=${m[0]}`;
+            }
+            return url;
+        }
+
+        function formatarMoeda(v) {
+            return new Intl.NumberFormat('pt-BR', { style: 'currency', currency: 'BRL' }).format(Number(v) || 0);
+        }
+
+        function formatarKm(v) {
+            return new Intl.NumberFormat('pt-BR').format(Number(v) || 0);
+        }
+
+        function mostrarErro() {
+            document.getElementById('loading').classList.add('hidden');
+            document.getElementById('erro').classList.remove('hidden');
+        }
+    </script>
+</body>
+</html>
