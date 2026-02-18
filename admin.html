@@ -10,12 +10,19 @@
         @import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&display=swap');
         * { font-family: 'Inter', -apple-system, sans-serif; margin: 0; padding: 0; box-sizing: border-box; }
         .gradient-bg { background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); }
-                .sidebar { transition: transform 0.3s ease; height: 100vh; position: fixed; top: 0; left: 0; width: 256px; background: white; box-shadow: 2px 0 10px rgba(0,0,0,0.1); z-index: 1000; }
+                .sidebar { transition: transform 0.3s ease; height: 100vh; position: fixed; top: 0; left: 0; width: 256px; background: white; box-shadow: 2px 0 10px rgba(0,0,0,0.1); z-index: 1000; transform: translateX(0); }
         .sidebar-overlay { position: fixed; inset: 0; background: rgba(0,0,0,0.5); z-index: 999; display: none; }
         .sidebar-overlay.active { display: block; }
                 @media (max-width: 1024px) { 
-            .sidebar { transform: translateX(-100%) !important; }
-            .sidebar.open { transform: translateX(0) !important; }
+            .sidebar { 
+                transform: translateX(-100%) !important;
+            }
+            .sidebar.open { 
+                transform: translateX(0) !important;
+            }
+            .main-content {
+                margin-left: 0 !important;
+            }
         }
         .main-content { margin-left: 256px; min-height: 100vh; }
         @media (max-width: 1024px) { .main-content { margin-left: 0; } }
@@ -799,13 +806,27 @@ const MARCAS_MODELOS = {
             console.log('Toggle sidebar chamado');
             const sidebar = document.getElementById('sidebar');
             const overlay = document.getElementById('sidebarOverlay');
-            if (!sidebar || !overlay) {
-                console.error('Sidebar ou overlay não encontrado!');
+            if (!sidebar) {
+                console.error('Sidebar não encontrado!');
                 return;
             }
-            sidebar.classList.toggle('open');
-            overlay.classList.toggle('active');
-            console.log('Sidebar open:', sidebar.classList.contains('open'));
+            if (!overlay) {
+                console.error('Overlay não encontrado!');
+                return;
+            }
+            
+            const isOpen = sidebar.classList.contains('open');
+            console.log('Estado atual:', isOpen ? 'aberto' : 'fechado');
+            
+            if (isOpen) {
+                sidebar.classList.remove('open');
+                overlay.classList.remove('active');
+            } else {
+                sidebar.classList.add('open');
+                overlay.classList.add('active');
+            }
+            
+            console.log('Novo estado:', sidebar.classList.contains('open') ? 'aberto' : 'fechado');
         }
     </script>
 </body>
