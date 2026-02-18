@@ -10,8 +10,13 @@
         @import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&display=swap');
         * { font-family: 'Inter', -apple-system, sans-serif; margin: 0; padding: 0; box-sizing: border-box; }
         .gradient-bg { background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); }
-        .sidebar { transition: transform 0.3s ease; height: 100vh; position: fixed; top: 0; left: 0; width: 256px; background: white; box-shadow: 2px 0 10px rgba(0,0,0,0.1); z-index: 1000; }
-        @media (max-width: 1024px) { .sidebar.closed { transform: translateX(-100%); } }
+                .sidebar { transition: transform 0.3s ease; height: 100vh; position: fixed; top: 0; left: 0; width: 256px; background: white; box-shadow: 2px 0 10px rgba(0,0,0,0.1); z-index: 1000; }
+        .sidebar-overlay { position: fixed; inset: 0; bg-black/50; z-index: 999; display: none; }
+        .sidebar-overlay.active { display: block; }
+                @media (max-width: 1024px) { 
+            .sidebar { transform: translateX(-100%); }
+            .sidebar.open { transform: translateX(0); }
+        }
         .main-content { margin-left: 256px; min-height: 100vh; }
         @media (max-width: 1024px) { .main-content { margin-left: 0; } }
         .tab-content { display: none; }
@@ -33,7 +38,7 @@
                 <div class="flex items-center space-x-3">
                     <i data-lucide="car" class="w-8 h-8"></i>
                     <div>
-                        <h1 class="text-xl font-bold" id="nomeLoja">Auto Premium</h1>
+                        <h1 class="text-xl font-bold" id="nomeLoja">Alysson Bruno</h1>
                         <p class="text-xs opacity-90">Painel Admin</p>
                     </div>
                 </div>
@@ -152,9 +157,16 @@
                     <input type="hidden" id="veiculoPastaId">
                     <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
                         <div><label class="block text-sm font-medium text-gray-700 mb-2">Marca*</label>
-                            <input type="text" id="marca" required class="w-full border border-gray-300 rounded-lg px-4 py-2 focus:ring-2 focus:ring-purple-600 focus:border-transparent"></div>
+                            <input type="text" id="marca" list="listaMarcas" required 
+                                   onchange="atualizarModelos()" 
+                                   class="w-full border border-gray-300 rounded-lg px-4 py-2 focus:ring-2 focus:ring-purple-600 focus:border-transparent">
+                            <datalist id="listaMarcas"></datalist>
+                        </div>
                         <div><label class="block text-sm font-medium text-gray-700 mb-2">Modelo*</label>
-                            <input type="text" id="modelo" required class="w-full border border-gray-300 rounded-lg px-4 py-2 focus:ring-2 focus:ring-purple-600 focus:border-transparent"></div>
+                            <input type="text" id="modelo" list="listaModelos" required 
+                                   class="w-full border border-gray-300 rounded-lg px-4 py-2 focus:ring-2 focus:ring-purple-600 focus:border-transparent">
+                            <datalist id="listaModelos"></datalist>
+                        </div>
                         <div><label class="block text-sm font-medium text-gray-700 mb-2">Ano*</label>
                             <input type="number" id="ano" required class="w-full border border-gray-300 rounded-lg px-4 py-2 focus:ring-2 focus:ring-purple-600 focus:border-transparent"></div>
                         <div><label class="block text-sm font-medium text-gray-700 mb-2">KM*</label>
@@ -184,8 +196,15 @@
                     </div>
                     <div><label class="block text-sm font-medium text-gray-700 mb-2">Descrição</label>
                         <textarea id="descricao" rows="3" class="w-full border border-gray-300 rounded-lg px-4 py-2 focus:ring-2 focus:ring-purple-600 focus:border-transparent"></textarea></div>
-                    <div><label class="block text-sm font-medium text-gray-700 mb-2">Opcionais (separados por vírgula)</label>
-                        <input type="text" id="opcionais" placeholder="Ar condicionado, Direção hidráulica, Vidros elétricos" class="w-full border border-gray-300 rounded-lg px-4 py-2 focus:ring-2 focus:ring-purple-600 focus:border-transparent"></div>
+                    <div>
+                        <label class="block text-sm font-medium text-gray-700 mb-2">Opcionais</label>
+                        <div class="border border-gray-300 rounded-lg p-4 max-h-64 overflow-y-auto">
+                            <div class="grid grid-cols-1 md:grid-cols-2 gap-2" id="opcionaisGrid">
+                                <!-- Será preenchido via JS -->
+                            </div>
+                        </div>
+                        <input type="hidden" id="opcionais">
+                    </div>
                     <div id="uploadSection">
                         <label class="block text-sm font-medium text-gray-700 mb-2">Fotos do Veículo</label>
                         <div id="dropzone" class="dropzone rounded-lg p-8 text-center" ondrop="handleDrop(event)" ondragover="handleDragOver(event)" ondragleave="handleDragLeave(event)" onclick="document.getElementById('fileInput').click()">
@@ -235,6 +254,31 @@
     <script>
         const API_URL = 'https://script.google.com/macros/s/AKfycbweKB-tmROFFtw9r9iiW8tQF7vW-nyg5xOwvSUgdnXOjZrOTJQq3171_MRe0XoBTSZN/exec';
         
+
+const OPCIONAIS_DISPONIVEIS = ['Ar-condicionado', 'Direção hidráulica', 'Direção elétrica', 'Vidros elétricos', 'Travas elétricas', 'Retrovisores elétricos', 'Alarme', 'Air bag motorista', 'Air bag passageiro', 'Air bags laterais', 'ABS', 'Freios a disco', 'Sensor de estacionamento', 'Câmera de ré', 'Controle de tração', 'Controle de estabilidade', 'Piloto automático', 'Computador de bordo', 'Bancos em couro', 'Bancos aquecidos', 'Volante com regulagem de altura', 'Volante multifuncional', 'Rádio', 'CD player', 'Bluetooth', 'USB', 'Entrada auxiliar', 'Rodas de liga leve', 'Teto solar', 'Engate reboque', 'Rack de teto'];
+
+const MARCAS_MODELOS = {
+    'Volkswagen': ['Gol', 'Polo', 'Virtus', 'T-Cross', 'Nivus', 'Saveiro', 'Voyage', 'Fox', 'Up!'],
+    'Fiat': ['Uno', 'Argo', 'Mobi', 'Cronos', 'Pulse', 'Fastback', 'Toro', 'Strada', 'Palio', 'Punto'],
+    'Chevrolet': ['Onix', 'Tracker', 'S10', 'Montana', 'Spin', 'Cruze', 'Prisma', 'Celta'],
+    'Ford': ['Ka', 'EcoSport', 'Ranger', 'Fiesta', 'Fusion', 'Focus'],
+    'Hyundai': ['HB20', 'Creta', 'Tucson', 'i30', 'Santa Fe', 'Elantra', 'Azera'],
+    'Toyota': ['Corolla', 'Hilux', 'Yaris', 'SW4', 'RAV4', 'Etios', 'Camry'],
+    'Honda': ['Civic', 'City', 'HR-V', 'CR-V', 'Fit', 'WR-V', 'Accord'],
+    'Renault': ['Kwid', 'Sandero', 'Logan', 'Duster', 'Captur', 'Oroch', 'Fluence'],
+    'Nissan': ['Kicks', 'Versa', 'Frontier', 'Sentra', 'March', 'Livina'],
+    'Jeep': ['Renegade', 'Compass', 'Commander', 'Wrangler', 'Cherokee'],
+    'Peugeot': ['208', '2008', '3008', '5008', '308', '408'],
+    'Citroën': ['C3', 'C4 Cactus', 'Aircross', 'Berlingo'],
+    'Caoa Chery': ['Tiggo 5x', 'Tiggo 7', 'Tiggo 8', 'Arrizo 5', 'Arrizo 6'],
+    'BMW': ['320i', 'X1', 'X3', 'X5', 'Série 1', 'Série 3', 'Série 5'],
+    'Mercedes-Benz': ['Classe A', 'Classe C', 'GLA', 'GLC', 'Sprinter'],
+    'Audi': ['A3', 'A4', 'Q3', 'Q5', 'Q7'],
+    'Mitsubishi': ['L200', 'Outlander', 'ASX', 'Eclipse Cross'],
+    'BYD': ['Dolphin', 'Song Plus', 'Yuan Plus', 'Tan'],
+    'GWM': ['Haval H6', 'Poer', 'Ora 03']
+};
+
         let todosVeiculos = [];
         let todosLeads = [];
         let todasDespesas = [];
@@ -286,6 +330,12 @@
             } catch (e) { mostrarToast('Erro ao carregar veículos', 'error'); }
         }
 
+        function converterImagem(url) {
+            if (!url || url === '' || url.includes('/folders/')) return '';
+            const match = url.match(/[-\w]{25,}/);
+            return match ? 'https://drive.google.com/thumbnail?id=' + match[0] + '&sz=w200' : '';
+        }
+
         function renderizarVeiculos() {
             const lista = document.getElementById('listaVeiculos');
             if (todosVeiculos.length === 0) {
@@ -293,8 +343,12 @@
                 return;
             }
             lista.innerHTML = todosVeiculos.map(v => `
-                <div class="border border-gray-200 rounded-lg p-4 flex justify-between items-center hover:shadow-md transition">
-                    <div>
+                <div class="border border-gray-200 rounded-lg p-4 flex gap-4 hover:shadow-md transition">
+                    <img src="${converterImagem(v.imagem_principal)}" 
+                         alt="${v.marca} ${v.modelo}" 
+                         class="w-24 h-24 object-cover rounded-lg flex-shrink-0"
+                         onerror="this.src='https://placehold.co/96x96/e2e8f0/94a3b8?text=Sem+Foto'">
+                    <div class="flex-1">
                         <h4 class="font-bold text-lg text-gray-800">${v.marca} ${v.modelo} ${v.ano}</h4>
                         <p class="text-sm text-gray-600">${formatarKm(v.km)} km • ${v.cambio} • ${v.combustivel}</p>
                         <p class="text-purple-600 font-bold text-lg mt-1">${formatarMoeda(v.valor_anunciado)}</p>
@@ -315,6 +369,7 @@
             document.getElementById('formVeiculo').reset();
             document.getElementById('veiculoId').value = '';
             document.getElementById('veiculoPastaId').value = '';
+            document.querySelectorAll('#opcionaisGrid input[type="checkbox"]').forEach(cb => cb.checked = false);
             imagensSelecionadas = [];
             document.getElementById('previewContainer').innerHTML = '';
             document.getElementById('modalVeiculo').classList.remove('hidden');
@@ -352,7 +407,7 @@
             document.getElementById('valor_anunciado').value = veiculo.valor_anunciado;
             document.getElementById('status').value = veiculo.status;
             document.getElementById('descricao').value = veiculo.descricao || '';
-            document.getElementById('opcionais').value = veiculo.opcionais || '';
+            marcarOpcionais(veiculo.opcionais || '');
             imagensSelecionadas = [];
             document.getElementById('previewContainer').innerHTML = '';
             document.getElementById('modalVeiculo').classList.remove('hidden');
@@ -683,6 +738,54 @@
 
         function formatarKm(km) {
             return new Intl.NumberFormat('pt-BR').format(km || 0);
+        }
+
+        function popularOpcionais() {
+            const grid = document.getElementById('opcionaisGrid');
+            grid.innerHTML = OPCIONAIS_DISPONIVEIS.map((op, idx) => `
+                <label class="flex items-center gap-2 p-2 hover:bg-gray-50 rounded cursor-pointer">
+                    <input type="checkbox" 
+                           value="${op}" 
+                           onchange="atualizarOpcionais()"
+                           class="w-4 h-4 text-purple-600 rounded focus:ring-2 focus:ring-purple-600">
+                    <span class="text-sm text-gray-700">${op}</span>
+                </label>
+            `).join('');
+        }
+
+        function atualizarOpcionais() {
+            const checks = document.querySelectorAll('#opcionaisGrid input[type="checkbox"]:checked');
+            const selecionados = Array.from(checks).map(c => c.value);
+            document.getElementById('opcionais').value = selecionados.join(', ');
+        }
+
+        function marcarOpcionais(opcionaisStr) {
+            if (!opcionaisStr) return;
+            const lista = opcionaisStr.split(',').map(s => s.trim());
+            document.querySelectorAll('#opcionaisGrid input[type="checkbox"]').forEach(cb => {
+                cb.checked = lista.includes(cb.value);
+            });
+        }
+
+        function popularMarcas() {
+            const datalist = document.getElementById('listaMarcas');
+            datalist.innerHTML = Object.keys(MARCAS_MODELOS).sort().map(m => 
+                `<option value="${m}">`
+            ).join('');
+        }
+
+        function atualizarModelos() {
+            const marca = document.getElementById('marca').value;
+            const datalist = document.getElementById('listaModelos');
+            const modelos = MARCAS_MODELOS[marca] || [];
+            datalist.innerHTML = modelos.map(m => `<option value="${m}">`).join('');
+        }
+
+        function toggleSidebar() {
+            const sidebar = document.getElementById('sidebar');
+            const overlay = document.getElementById('sidebarOverlay');
+            sidebar.classList.toggle('open');
+            overlay.classList.toggle('active');
         }
     </script>
 </body>
