@@ -14,8 +14,8 @@
         .sidebar-overlay { position: fixed; inset: 0; background: rgba(0,0,0,0.5); z-index: 999; display: none; }
         .sidebar-overlay.active { display: block; }
                 @media (max-width: 1024px) { 
-            .sidebar { transform: translateX(-100%); }
-            .sidebar.open { transform: translateX(0); }
+            .sidebar { transform: translateX(-100%) !important; }
+            .sidebar.open { transform: translateX(0) !important; }
         }
         .main-content { margin-left: 256px; min-height: 100vh; }
         @media (max-width: 1024px) { .main-content { margin-left: 0; } }
@@ -369,7 +369,11 @@ const MARCAS_MODELOS = {
             document.getElementById('formVeiculo').reset();
             document.getElementById('veiculoId').value = '';
             document.getElementById('veiculoPastaId').value = '';
+            
+            // Popular opcionais quando abrir o modal
+            popularOpcionais();
             document.querySelectorAll('#opcionaisGrid input[type="checkbox"]').forEach(cb => cb.checked = false);
+            
             imagensSelecionadas = [];
             document.getElementById('previewContainer').innerHTML = '';
             document.getElementById('modalVeiculo').classList.remove('hidden');
@@ -407,7 +411,10 @@ const MARCAS_MODELOS = {
             document.getElementById('valor_anunciado').value = veiculo.valor_anunciado;
             document.getElementById('status').value = veiculo.status;
             document.getElementById('descricao').value = veiculo.descricao || '';
+            // Popular opcionais antes de marcar
+            popularOpcionais();
             marcarOpcionais(veiculo.opcionais || '');
+            
             imagensSelecionadas = [];
             document.getElementById('previewContainer').innerHTML = '';
             document.getElementById('modalVeiculo').classList.remove('hidden');
