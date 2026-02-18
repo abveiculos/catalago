@@ -400,9 +400,11 @@
                             pastaIdParaUpload = document.getElementById('veiculoPastaId').value;
                             console.log('📂 Usando pastaId do veículo existente:', pastaIdParaUpload);
                         }
+                        // Ao editar, result.id pode não vir, então usa veiculoEditando
+                        const veiculoIdParaUpload = result.id || veiculoEditando;
                         console.log('📸 Iniciando upload de', imagensSelecionadas.length, 'imagens');
                         console.log('🗂️ Pasta ID:', pastaIdParaUpload);
-                        console.log('📦 Veículo ID:', result.id);
+                        console.log('📦 Veículo ID:', veiculoIdParaUpload);
                         if (!pastaIdParaUpload) {
                             console.error('❌ Sem pastaId para upload!');
                             mostrarToast('Veículo salvo! Para adicionar fotos, edite o veículo.', 'success');
@@ -413,7 +415,7 @@
                             for (let imgIdx = 0; imgIdx < imagensSelecionadas.length; imgIdx++) {
                                 const img = imagensSelecionadas[imgIdx];
                                 const dadosImg = {
-                                    veiculoId: result.id,
+                                    veiculoId: veiculoIdParaUpload,
                                     pastaId: pastaIdParaUpload,
                                     imagens: [img]
                                 };
