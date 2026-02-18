@@ -11,7 +11,7 @@
         * { font-family: 'Inter', -apple-system, sans-serif; margin: 0; padding: 0; box-sizing: border-box; }
         .gradient-bg { background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); }
                 .sidebar { transition: transform 0.3s ease; height: 100vh; position: fixed; top: 0; left: 0; width: 256px; background: white; box-shadow: 2px 0 10px rgba(0,0,0,0.1); z-index: 1000; }
-        .sidebar-overlay { position: fixed; inset: 0; bg-black/50; z-index: 999; display: none; }
+        .sidebar-overlay { position: fixed; inset: 0; background: rgba(0,0,0,0.5); z-index: 999; display: none; }
         .sidebar-overlay.active { display: block; }
                 @media (max-width: 1024px) { 
             .sidebar { transform: translateX(-100%); }
@@ -741,7 +741,13 @@ const MARCAS_MODELOS = {
         }
 
         function popularOpcionais() {
+            console.log('Populando opcionais...');
             const grid = document.getElementById('opcionaisGrid');
+            if (!grid) {
+                console.error('opcionaisGrid não encontrado!');
+                return;
+            }
+            console.log('Opcionais disponíveis:', OPCIONAIS_DISPONIVEIS.length);
             grid.innerHTML = OPCIONAIS_DISPONIVEIS.map((op, idx) => `
                 <label class="flex items-center gap-2 p-2 hover:bg-gray-50 rounded cursor-pointer">
                     <input type="checkbox" 
@@ -751,6 +757,7 @@ const MARCAS_MODELOS = {
                     <span class="text-sm text-gray-700">${op}</span>
                 </label>
             `).join('');
+            console.log('Opcionais renderizados:', grid.children.length, 'itens');
         }
 
         function atualizarOpcionais() {
@@ -782,10 +789,16 @@ const MARCAS_MODELOS = {
         }
 
         function toggleSidebar() {
+            console.log('Toggle sidebar chamado');
             const sidebar = document.getElementById('sidebar');
             const overlay = document.getElementById('sidebarOverlay');
+            if (!sidebar || !overlay) {
+                console.error('Sidebar ou overlay não encontrado!');
+                return;
+            }
             sidebar.classList.toggle('open');
             overlay.classList.toggle('active');
+            console.log('Sidebar open:', sidebar.classList.contains('open'));
         }
     </script>
 </body>
