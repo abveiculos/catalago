@@ -147,14 +147,18 @@
                             <i data-lucide="trending-up" class="w-5 h-5 text-purple-600"></i>
                             Vendas por Mês
                         </h3>
-                        <canvas id="graficoVendas" height="250"></canvas>
+                        <div style="height: 300px; position: relative;">
+                            <canvas id="graficoVendas"></canvas>
+                        </div>
                     </div>
                     <div class="bg-white rounded-xl shadow-lg p-6">
                         <h3 class="text-lg font-bold text-gray-800 mb-4 flex items-center gap-2">
                             <i data-lucide="pie-chart" class="w-5 h-5 text-purple-600"></i>
                             Lucro por Veículo (Top 5)
                         </h3>
-                        <canvas id="graficoLucro" height="250"></canvas>
+                        <div style="height: 300px; position: relative;">
+                            <canvas id="graficoLucro"></canvas>
+                        </div>
                     </div>
                 </div>
             </div>
@@ -257,6 +261,12 @@
                             <select id="status" required class="w-full border border-gray-300 rounded-lg px-4 py-2 focus:ring-2 focus:ring-purple-600 focus:border-transparent">
                                 <option value="Disponível">Disponível</option><option value="Vendido">Vendido</option><option value="Reservado">Reservado</option>
                             </select></div>
+                        <div><label class="block text-sm font-medium text-gray-700 mb-2">Destaque no Site?</label>
+                            <select id="destaque" class="w-full border border-gray-300 rounded-lg px-4 py-2 focus:ring-2 focus:ring-purple-600 focus:border-transparent">
+                                <option value="NÃO">NÃO</option>
+                                <option value="SIM">SIM - Aparece em Destaque</option>
+                            </select>
+                        </div>
                     </div>
                     <div><label class="block text-sm font-medium text-gray-700 mb-2">Descrição</label>
                         <textarea id="descricao" rows="3" class="w-full border border-gray-300 rounded-lg px-4 py-2 focus:ring-2 focus:ring-purple-600 focus:border-transparent"></textarea></div>
@@ -409,19 +419,35 @@ const MARCAS_MODELOS = {
                         data: valores,
                         backgroundColor: '#8b5cf6',
                         borderColor: '#7c3aed',
-                        borderWidth: 1
+                        borderWidth: 1,
+                        borderRadius: 4
                     }]
                 },
                 options: {
                     responsive: true,
                     maintainAspectRatio: false,
                     plugins: {
-                        legend: { display: false }
+                        legend: { display: false },
+                        tooltip: {
+                            callbacks: {
+                                label: function(context) {
+                                    return 'Vendas: ' + context.parsed.y;
+                                }
+                            }
+                        }
                     },
                     scales: {
                         y: {
                             beginAtZero: true,
-                            ticks: { precision: 0 }
+                            ticks: { 
+                                precision: 0,
+                                font: { size: 11 }
+                            },
+                            grid: { color: '#f3f4f6' }
+                        },
+                        x: {
+                            ticks: { font: { size: 11 } },
+                            grid: { display: false }
                         }
                     }
                 }
@@ -435,7 +461,7 @@ const MARCAS_MODELOS = {
             if (chartLucro) chartLucro.destroy();
 
             if (dados.length === 0) {
-                ctx.parentElement.innerHTML = '<p class="text-gray-500 text-center py-8">Nenhuma venda registrada ainda</p>';
+                ctx.parentElement.parentElement.innerHTML = '<p class="text-gray-500 text-center py-8">Nenhuma venda registrada ainda</p>';
                 return;
             }
 
@@ -454,7 +480,9 @@ const MARCAS_MODELOS = {
                             '#f59e0b',
                             '#10b981',
                             '#3b82f6'
-                        ]
+                        ],
+                        borderWidth: 2,
+                        borderColor: '#ffffff'
                     }]
                 },
                 options: {
@@ -462,7 +490,21 @@ const MARCAS_MODELOS = {
                     maintainAspectRatio: false,
                     plugins: {
                         legend: {
-                            position: 'bottom'
+                            position: 'bottom',
+                            labels: {
+                                padding: 15,
+                                font: { size: 11 },
+                                usePointStyle: true
+                            }
+                        },
+                        tooltip: {
+                            callbacks: {
+                                label: function(context) {
+                                    const label = context.label || '';
+                                    const value = context.parsed || 0;
+                                    return label + ': R$ ' + value.toLocaleString('pt-BR', {minimumFractionDigits: 2});
+                                }
+                            }
                         }
                     }
                 }
@@ -539,21 +581,37 @@ const MARCAS_MODELOS = {
                 return;
             }
             lista.innerHTML = todosVeiculos.map(v => `
-                <div class="border border-gray-200 rounded-lg p-4 flex gap-4 hover:shadow-md transition">
-                    <img src="${converterImagem(v.imagem_principal)}" 
-                         alt="${v.marca} ${v.modelo}" 
-                         class="w-24 h-24 object-cover rounded-lg flex-shrink-0"
-                         onerror="this.src='https://placehold.co/96x96/e2e8f0/94a3b8?text=Sem+Foto'">
-                    <div class="flex-1">
-                        <h4 class="font-bold text-lg text-gray-800">${v.marca} ${v.modelo} ${v.ano}</h4>
-                        <p class="text-sm text-gray-600">${formatarKm(v.km)} km • ${v.cambio} • ${v.combustivel}</p>
-                        <p class="text-purple-600 font-bold text-lg mt-1">${formatarMoeda(v.valor_anunciado)}</p>
-                        <span class="inline-block px-3 py-1 rounded-full text-xs font-semibold mt-2 ${v.status==='Disponível'?'bg-green-100 text-green-800':v.status==='Vendido'?'bg-blue-100 text-blue-800':'bg-yellow-100 text-yellow-800'}">${v.status}</span>
+                <div class="border border-gray-200 rounded-lg p-4 hover:shadow-md transition">
+                    <!-- Layout Mobile/Desktop Responsivo -->
+                    <div class="flex flex-col sm:flex-row gap-4">
+                        <img src="${converterImagem(v.imagem_principal)}" 
+                             alt="${v.marca} ${v.modelo}" 
+                             class="w-full sm:w-32 h-32 object-cover rounded-lg"
+                             onerror="this.src='https://placehold.co/400x300/e2e8f0/94a3b8?text=Sem+Foto'">
+                        <div class="flex-1">
+                            <h4 class="font-bold text-lg text-gray-800">${v.marca} ${v.modelo} ${v.ano}</h4>
+                            <p class="text-sm text-gray-600 mt-1">${formatarKm(v.km)} km • ${v.cambio} • ${v.combustivel}</p>
+                            <p class="text-purple-600 font-bold text-xl mt-2">${formatarMoeda(v.valor_anunciado)}</p>
+                            <div class="flex flex-wrap gap-2 mt-2">
+                                <span class="inline-block px-3 py-1 rounded-full text-xs font-semibold ${v.status==='Disponível'?'bg-green-100 text-green-800':v.status==='Vendido'?'bg-blue-100 text-blue-800':'bg-yellow-100 text-yellow-800'}">${v.status}</span>
+                                ${v.destaque==='SIM'?'<span class="inline-block px-3 py-1 rounded-full text-xs font-semibold bg-yellow-100 text-yellow-800">⭐ Destaque</span>':''}
+                            </div>
+                        </div>
                     </div>
-                    <div class="flex space-x-2">
-                        <button onclick="verDetalhesVeiculo(${v.id})" class="p-3 hover:bg-purple-100 text-purple-600 rounded-lg transition" title="Ver Detalhes"><i data-lucide="eye" class="w-5 h-5"></i></button>
-                        <button onclick="editarVeiculo(${v.id})" class="p-3 hover:bg-gray-100 rounded-lg transition" title="Editar"><i data-lucide="edit" class="w-5 h-5 text-gray-600"></i></button>
-                        <button onclick="excluirVeiculo(${v.id})" class="p-3 hover:bg-red-100 text-red-600 rounded-lg transition" title="Excluir"><i data-lucide="trash-2" class="w-5 h-5"></i></button>
+                    <!-- Botões -->
+                    <div class="flex gap-2 mt-4 pt-4 border-t">
+                        <button onclick="verDetalhesVeiculo(${v.id})" class="flex-1 sm:flex-none px-4 py-2 bg-purple-100 text-purple-600 rounded-lg hover:bg-purple-200 transition text-sm font-medium flex items-center justify-center gap-2">
+                            <i data-lucide="eye" class="w-4 h-4"></i>
+                            <span class="hidden sm:inline">Ver</span>
+                        </button>
+                        <button onclick="editarVeiculo(${v.id})" class="flex-1 sm:flex-none px-4 py-2 bg-gray-100 text-gray-600 rounded-lg hover:bg-gray-200 transition text-sm font-medium flex items-center justify-center gap-2">
+                            <i data-lucide="edit" class="w-4 h-4"></i>
+                            <span class="hidden sm:inline">Editar</span>
+                        </button>
+                        <button onclick="excluirVeiculo(${v.id})" class="flex-1 sm:flex-none px-4 py-2 bg-red-100 text-red-600 rounded-lg hover:bg-red-200 transition text-sm font-medium flex items-center justify-center gap-2">
+                            <i data-lucide="trash-2" class="w-4 h-4"></i>
+                            <span class="hidden sm:inline">Excluir</span>
+                        </button>
                     </div>
                 </div>
             `).join('');
@@ -607,6 +665,7 @@ const MARCAS_MODELOS = {
             document.getElementById('custos_adicionais').value = veiculo.custos_adicionais || 0;
             document.getElementById('valor_anunciado').value = veiculo.valor_anunciado;
             document.getElementById('status').value = veiculo.status;
+            document.getElementById('destaque').value = veiculo.destaque || 'NÃO';
             document.getElementById('descricao').value = veiculo.descricao || '';
             // Popular opcionais antes de marcar
             popularOpcionais();
@@ -633,6 +692,7 @@ const MARCAS_MODELOS = {
                 custos_adicionais: document.getElementById('custos_adicionais').value || 0,
                 valor_anunciado: document.getElementById('valor_anunciado').value,
                 status: document.getElementById('status').value,
+                destaque: document.getElementById('destaque').value,
                 descricao: document.getElementById('descricao').value,
                 opcionais: document.getElementById('opcionais').value
             };
