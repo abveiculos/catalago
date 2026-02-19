@@ -18,6 +18,8 @@
         .categoria-estetica { background: #fce7f3; color: #9f1239; }
         .categoria-transporte { background: #d1fae5; color: #065f46; }
         .categoria-outros { background: #e5e7eb; color: #374151; }
+        .toast { position: fixed; bottom: 20px; right: 20px; z-index: 9999; animation: slideIn 0.3s ease; min-width: 300px; }
+        @keyframes slideIn { from { transform: translateX(400px); } to { transform: translateX(0); } }
     </style>
 </head>
 <body class="bg-gray-50">
@@ -154,7 +156,10 @@
                 <div class="space-y-4">
                     <div>
                         <label class="block text-sm font-medium mb-2">Cliente*</label>
-                        <select id="vendaCliente" required class="w-full border rounded-lg px-4 py-2">
+                        <input type="text" id="buscaCliente" placeholder="Buscar por nome, CPF ou telefone..." 
+                               class="w-full border rounded-lg px-4 py-2 mb-2" 
+                               onkeyup="filtrarClientes()">
+                        <select id="vendaCliente" required size="5" class="w-full border rounded-lg px-4 py-2">
                             <option value="">Selecione o cliente</option>
                         </select>
                     </div>
@@ -274,8 +279,8 @@
                 veiculo = res.data;
                 renderizar();
             } catch(e) {
-                alert('Erro ao carregar veículo: ' + e.message);
-                window.close();
+                mostrarToast('Erro ao carregar veículo: ' + e.message, 'error');
+                setTimeout(() => window.close(), 2000);
             }
         }
 
@@ -466,11 +471,32 @@
 
         // Modals
         function abrirModalVenda() {
-            const select = document.getElementById('vendaCliente');
-            select.innerHTML = '<option value="">Selecione o cliente</option>' + 
-                clientes.map(c => `<option value="${c.id}">${c.nome}</option>`).join('');
+            popularSelectClientes();
             document.getElementById('vendaValor').value = veiculo.valor_anunciado || '';
+            document.getElementById('buscaCliente').value = '';
             document.getElementById('modalVenda').classList.remove('hidden');
+        }
+
+        function popularSelectClientes(filtro = '') {
+            const select = document.getElementById('vendaCliente');
+            let clientesFiltrados = clientes;
+            
+            if (filtro) {
+                const termo = filtro.toLowerCase();
+                clientesFiltrados = clientes.filter(c => 
+                    (c.nome || '').toLowerCase().includes(termo) ||
+                    (c.cpf || '').includes(termo) ||
+                    (c.telefone || '').includes(termo)
+                );
+            }
+            
+            select.innerHTML = '<option value="">Selecione o cliente</option>' + 
+                clientesFiltrados.map(c => `<option value="${c.id}">${c.nome} - ${c.cpf || 'CPF não informado'}</option>`).join('');
+        }
+
+        function filtrarClientes() {
+            const busca = document.getElementById('buscaCliente').value;
+            popularSelectClientes(busca);
         }
 
         function fecharModalVenda() {
@@ -493,13 +519,13 @@
                 });
                 const res = await r.json();
                 if (res.success) {
-                    alert('Venda registrada com sucesso!');
-                    location.reload();
+                    mostrarToast('Venda registrada com sucesso!');
+                    setTimeout(() => location.reload(), 1500);
                 } else {
-                    alert('Erro: ' + res.error);
+                    mostrarToast('Erro: ' + res.error, 'error');
                 }
             } catch(e) {
-                alert('Erro ao salvar venda');
+                mostrarToast('Erro ao salvar venda', 'error');
             }
         }
 
@@ -530,13 +556,13 @@
                 });
                 const res = await r.json();
                 if (res.success) {
-                    alert('Despesa adicionada!');
-                    location.reload();
+                    mostrarToast('Despesa adicionada com sucesso!');
+                    setTimeout(() => location.reload(), 1500);
                 } else {
-                    alert('Erro: ' + res.error);
+                    mostrarToast('Erro: ' + res.error, 'error');
                 }
             } catch(e) {
-                alert('Erro ao salvar despesa');
+                mostrarToast('Erro ao salvar despesa', 'error');
             }
         }
 
@@ -567,18 +593,31 @@
                 });
                 const res = await r.json();
                 if (res.success) {
-                    alert('Manutenção adicionada!');
-                    location.reload();
+                    mostrarToast('Manutenção adicionada com sucesso!');
+                    setTimeout(() => location.reload(), 1500);
                 } else {
-                    alert('Erro: ' + res.error);
+                    mostrarToast('Erro: ' + res.error, 'error');
                 }
-            } catch(e) {
-                alert('Erro ao salvar manutenção');
+            } catch(e) { mostrarToast('Erro ao salvar manutenção', 'error');
             }
         }
 
         function voltarAdmin() {
             window.opener ? window.close() : window.location.href = 'admin.html';
+        }
+
+        function mostrarToast(msg, tipo = 'success') {
+            const cores = {success: 'bg-green-500', error: 'bg-red-500', info: 'bg-blue-500'};
+            const icones = {success: 'check-circle', error: 'x-circle', info: 'info'};
+            const toast = document.createElement('div');
+            toast.className = `toast ${cores[tipo]} text-white px-6 py-4 rounded-lg shadow-lg flex items-center gap-3`;
+            toast.innerHTML = `
+                <i data-lucide="${icones[tipo]}" class="w-5 h-5"></i>
+                <span>${msg}</span>
+            `;
+            document.body.appendChild(toast);
+            lucide.createIcons();
+            setTimeout(() => toast.remove(), 3000);
         }
 
         function formatarMoeda(v) {
