@@ -681,7 +681,10 @@ const MARCAS_MODELOS = {
             marcarOpcionais(veiculo.opcionais || '');
             
             imagensSelecionadas = [];
-            document.getElementById('previewContainer').innerHTML = '';
+            
+            // Renderizar fotos existentes
+            renderizarFotosExistentes();
+            
             document.getElementById('modalVeiculo').classList.remove('hidden');
             lucide.createIcons();
         }
@@ -711,6 +714,12 @@ const MARCAS_MODELOS = {
                 if (veiculoEditando) {
                     action = 'updateVeiculo';
                     dados.id = veiculoEditando;
+                    
+                    // Se alterou foto principal nas fotos existentes
+                    const fotoPrincipalExistente = fotosExistentes.find(f => f.isPrincipal);
+                    if (fotoPrincipalExistente) {
+                        dados.imagem_principal = fotoPrincipalExistente.url;
+                    }
                 }
                 const res = await fetch(`${API_URL}?action=${action}`, {
                     method: 'POST',
@@ -1115,6 +1124,108 @@ const MARCAS_MODELOS = {
             }
         }
 
+
+
+        function renderizarFotosExistentes() {
+            const container = document.getElementById('previewContainer');
+            container.innerHTML = '';
+            
+            if (fotosExistentes.length === 0) return;
+            
+            fotosExistentes.forEach((foto, index) => {
+                const div = document.createElement('div');
+                div.className = 'relative group';
+                div.setAttribute('data-foto-existente', index);
+                
+                // Converter URL do Drive para thumbnail
+                let imgUrl = foto.url;
+                if (imgUrl.includes('drive.google.com')) {
+                    const match = imgUrl.match(/[-\w]{25,}/);
+                    if (match) {
+                        imgUrl = `https://drive.google.com/thumbnail?id=${match[0]}&sz=w400`;
+                    }
+                }
+                
+                div.innerHTML = `
+                    <img src="${imgUrl}" class="preview-img cursor-pointer" onclick="definirPrincipalExistente(${index})" onerror="this.src='https://placehold.co/120x120/e2e8f0/94a3b8?text=Erro'">
+                    <div class="absolute inset-0 bg-black/0 group-hover:bg-black/60 transition flex items-center justify-center gap-2">
+                        <button type="button" onclick="definirPrincipalExistente(${index})" class="hidden group-hover:flex bg-purple-600 text-white px-3 py-1 rounded text-xs items-center gap-1 hover:bg-purple-700">
+                            <i data-lucide="star" class="w-3 h-3"></i>
+                            Principal
+                        </button>
+                        <button type="button" onclick="excluirFotoExistente(${index})" class="hidden group-hover:flex bg-red-600 text-white px-3 py-1 rounded text-xs items-center gap-1 hover:bg-red-700">
+                            <i data-lucide="trash-2" class="w-3 h-3"></i>
+                            Excluir
+                        </button>
+                    </div>
+                    ${foto.isPrincipal ? '<span class="absolute top-2 left-2 bg-purple-600 text-white text-xs px-2 py-1 rounded flex items-center gap-1"><i data-lucide="star" class="w-3 h-3"></i>Principal</span>' : ''}
+                    <span class="absolute bottom-2 left-2 bg-blue-600 text-white text-xs px-2 py-1 rounded">Já salva</span>
+                `;
+                
+                container.appendChild(div);
+            });
+            
+            lucide.createIcons();
+        }
+
+        function definirPrincipalExistente(index) {
+            // Marcar todas como não principal
+            fotosExistentes.forEach(f => f.isPrincipal = false);
+            fotosExistentes[index].isPrincipal = true;
+            
+            // Atualizar visual
+            renderizarFotosExistentes();
+            
+            // Adicionar novas fotos depois
+            imagensSelecionadas.forEach((img, i) => {
+                const div = document.createElement('div');
+                div.className = 'relative group';
+                div.innerHTML = `
+                    <img src="${img.base64}" class="preview-img">
+                    <span class="absolute bottom-2 left-2 bg-green-600 text-white text-xs px-2 py-1 rounded">Nova</span>
+                `;
+                document.getElementById('previewContainer').appendChild(div);
+            });
+            
+            lucide.createIcons();
+            mostrarToast('Foto principal definida!', 'success');
+        }
+
+        async function excluirFotoExistente(index) {
+            if (!confirm('Deseja excluir esta foto? Esta ação não pode ser desfeita.')) return;
+            
+            const foto = fotosExistentes[index];
+            const eraPrincipal = foto.isPrincipal;
+            
+            // Marcar para exclusão (vamos deletar ao salvar)
+            foto.marcarExcluir = true;
+            
+            // Remover do array
+            fotosExistentes.splice(index, 1);
+            
+            // Se era principal e ainda tem fotos, marcar outra como principal
+            if (eraPrincipal && fotosExistentes.length > 0) {
+                fotosExistentes[0].isPrincipal = true;
+            } else if (eraPrincipal && imagensSelecionadas.length > 0) {
+                imagensSelecionadas[0].isPrincipal = true;
+            }
+            
+            renderizarFotosExistentes();
+            
+            // Re-adicionar novas fotos
+            imagensSelecionadas.forEach((img, i) => {
+                const div = document.createElement('div');
+                div.className = 'relative group';
+                div.innerHTML = `
+                    <img src="${img.base64}" class="preview-img">
+                    <span class="absolute bottom-2 left-2 bg-green-600 text-white text-xs px-2 py-1 rounded">Nova</span>
+                `;
+                document.getElementById('previewContainer').appendChild(div);
+            });
+            
+            lucide.createIcons();
+            mostrarToast('Foto será excluída ao salvar!', 'info');
+        }
 
         function definirPrincipal(index) {
             // Marcar todas como não principal
