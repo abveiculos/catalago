@@ -650,6 +650,7 @@ const MARCAS_MODELOS = {
 
         async function editarVeiculo(id) {
             veiculoEditando = id;
+            fotosExistentes = [];  // Resetar fotos existentes
             const veiculo = todosVeiculos.find(v => v.id === id);
             if (!veiculo) return;
             document.getElementById('modalVeiculoTitulo').textContent = 'Editar Veículo';
@@ -1130,7 +1131,8 @@ const MARCAS_MODELOS = {
             const container = document.getElementById('previewContainer');
             container.innerHTML = '';
             
-            if (fotosExistentes.length === 0) return;
+            // Garantir que fotosExistentes existe
+            if (!fotosExistentes || fotosExistentes.length === 0) return;
             
             fotosExistentes.forEach((foto, index) => {
                 const div = document.createElement('div');
