@@ -89,12 +89,17 @@
                     <i data-lucide="car" class="w-8 h-8"></i>
                     <div>
                         <h1 class="text-2xl font-bold" id="nomeLoja">Alysson Bruno</h1>
-                        <p class="text-xs opacity-90">Carros Seminovos Selecionados</p>
+                        <p class="text-xs opacity-90">Veiculos Seminovos </p>
                     </div>
                 </div>
-                <button onclick="toggleFilters()" class="lg:hidden bg-white/20 p-2 rounded-lg backdrop-blur">
-                    <i data-lucide="filter" class="w-6 h-6"></i>
-                </button>
+                <div class="flex items-center space-x-2">
+                    <button onclick="toggleFilters()" class="lg:hidden bg-white/20 p-2 rounded-lg backdrop-blur">
+                        <i data-lucide="filter" class="w-6 h-6"></i>
+                    </button>
+                    <button onclick="window.location.href='login.html'" title="Área Administrativa" class="bg-white/20 p-2 rounded-lg hover:bg-white/30 transition">
+                        <i data-lucide="shield" class="w-6 h-6"></i>
+                    </button>
+                </div>
             </div>
         </div>
     </header>
@@ -319,8 +324,8 @@
                 
                 if (result.success) {
                     todosVeiculos = result.data;
+                    console.log(todosVeiculos); // <-- Adicione isso
                     veiculosFiltrados = [...todosVeiculos];
-                    
                     renderizarDestaques();
                     renderizarVeiculos();
                     popularFiltros();
@@ -369,25 +374,35 @@
         // CRIAR CARD DE VEÍCULO
         // ============================================
         function criarCardVeiculo(veiculo, isDestaque) {
-            const imagemUrl = converterImagemDrive(veiculo.imagem_principal);
+            let imagens = [veiculo.imagem_principal].concat(Array.isArray(veiculo.imagens) ? veiculo.imagens.map(img => img.url || img) : []);
+            imagens = imagens.filter(url => url && url !== '' && url !== 'undefined' && url !== 'null');
+            if (imagens.length === 0) imagens = ['https://placehold.co/400x300/e2e8f0/94a3b8?text=Sem+Foto'];
             const precoFormatado = formatarMoeda(veiculo.valor_anunciado);
-            
+            const cardId = `card-veiculo-${veiculo.id}`;
+            // Galeria HTML
+            let galeriaHtml = `
+                <div class="relative h-48 bg-gray-200">
+                    <img id="${cardId}-img" src="${converterImagemDrive(imagens[0])}" alt="${veiculo.marca} ${veiculo.modelo}" class="w-full h-full object-cover transition-all duration-200" onerror="this.src='https://placehold.co/400x300/e2e8f0/94a3b8?text=Sem+Foto'" data-img-index="0">
+                    <button type="button" onclick="event.stopPropagation(); navegarImg('${cardId}', -1)" class="absolute left-2 top-1/2 -translate-y-1/2 bg-black/40 hover:bg-black/70 text-white rounded-full w-8 h-8 flex items-center justify-center z-10">
+                        <i data-lucide="chevron-left" class="w-5 h-5"></i>
+                    </button>
+                    <button type="button" onclick="event.stopPropagation(); navegarImg('${cardId}', 1)" class="absolute right-2 top-1/2 -translate-y-1/2 bg-black/40 hover:bg-black/70 text-white rounded-full w-8 h-8 flex items-center justify-center z-10">
+                        <i data-lucide="chevron-right" class="w-5 h-5"></i>
+                    </button>
+                    <div class="absolute bottom-0 left-0 right-0 bg-gradient-to-t from-black/60 to-transparent p-4">
+                        <p class="text-white font-bold text-lg">${veiculo.marca} ${veiculo.modelo}</p>
+                    </div>
+                </div>
+            `;
+            // Card HTML
             return `
                 <div class="bg-white rounded-xl shadow-lg overflow-hidden card-hover cursor-pointer" onclick="verDetalhes(${veiculo.id})">
                     ${isDestaque ? '<div class="badge-destaque absolute top-4 right-4 z-10 bg-yellow-500 text-white px-3 py-1 rounded-full text-sm font-bold flex items-center"><i data-lucide="star" class="w-4 h-4 mr-1"></i>Destaque</div>' : ''}
-                    
-                    <div class="relative h-48 bg-gray-200">
-                        <img src="${imagemUrl}" alt="${veiculo.marca} ${veiculo.modelo}" class="w-full h-full object-cover" onerror="this.src='https://placehold.co/400x300/e2e8f0/94a3b8?text=Sem+Foto'">
-                        <div class="absolute bottom-0 left-0 right-0 bg-gradient-to-t from-black/60 to-transparent p-4">
-                            <p class="text-white font-bold text-lg">${veiculo.marca} ${veiculo.modelo}</p>
-                        </div>
-                    </div>
-                    
+                    ${galeriaHtml}
                     <div class="p-4">
                         <div class="flex items-center justify-between mb-3">
                             <span class="text-2xl font-bold text-purple-600">${precoFormatado}</span>
                         </div>
-                        
                         <div class="grid grid-cols-2 gap-2 text-sm text-gray-600 mb-4">
                             <div class="flex items-center">
                                 <i data-lucide="calendar" class="w-4 h-4 mr-1"></i>
@@ -406,7 +421,6 @@
                                 ${veiculo.combustivel}
                             </div>
                         </div>
-                        
                         <button onclick="event.stopPropagation(); contatarWhatsApp(${veiculo.id})" class="w-full bg-green-500 hover:bg-green-600 text-white font-semibold py-3 rounded-lg transition flex items-center justify-center">
                             <i data-lucide="message-circle" class="w-5 h-5 mr-2"></i>
                             Tenho Interesse
@@ -414,6 +428,22 @@
                     </div>
                 </div>
             `;
+        }
+        // Função para navegar imagens nos cards (escopo global)
+        function navegarImg(cardId, dir) {
+            const card = document.getElementById(cardId + '-img');
+            if (!card) return;
+            // Buscar o veiculo pelo id
+            const veiculoId = parseInt(cardId.replace('card-veiculo-', ''));
+            const veiculo = todosVeiculos.find(v => v.id === veiculoId);
+            if (!veiculo) return;
+            let imagens = [veiculo.imagem_principal].concat(Array.isArray(veiculo.imagens) ? veiculo.imagens.map(img => img.url || img) : []);
+            imagens = imagens.filter(url => url && url !== '' && url !== 'undefined' && url !== 'null');
+            if (imagens.length === 0) imagens = ['https://placehold.co/400x300/e2e8f0/94a3b8?text=Sem+Foto'];
+            let idx = parseInt(card.getAttribute('data-img-index')) || 0;
+            idx = (idx + dir + imagens.length) % imagens.length;
+            card.src = converterImagemDrive(imagens[idx]);
+            card.setAttribute('data-img-index', idx);
         }
 
         // ============================================
