@@ -637,6 +637,15 @@ const MARCAS_MODELOS = {
 
         function fecharModalVeiculo() {
             document.getElementById('modalVeiculo').classList.add('hidden');
+            // Resetar barra de progresso
+            const progressDiv = document.getElementById('uploadProgress');
+            const progressBar = document.getElementById('uploadBar');
+            const progressPercent = document.getElementById('uploadPercent');
+            if (progressDiv) {
+                progressDiv.classList.add('hidden');
+                progressBar.style.width = '0%';
+                progressPercent.textContent = '0%';
+            }
         }
 
         async function editarVeiculo(id) {
@@ -1104,6 +1113,71 @@ const MARCAS_MODELOS = {
                     e.target.value = mascaraCEP(e.target.value);
                 });
             }
+        }
+
+
+        function definirPrincipal(index) {
+            // Marcar todas como não principal
+            imagensSelecionadas.forEach(img => img.isPrincipal = false);
+            // Marcar a selecionada como principal
+            imagensSelecionadas[index].isPrincipal = true;
+            
+            // Atualizar visual
+            document.querySelectorAll('#previewContainer > div').forEach((div, i) => {
+                const badge = div.querySelector('.absolute.top-2.left-2');
+                if (badge) badge.remove();
+                
+                if (i === index) {
+                    const newBadge = document.createElement('span');
+                    newBadge.className = 'absolute top-2 left-2 bg-purple-600 text-white text-xs px-2 py-1 rounded flex items-center gap-1';
+                    newBadge.innerHTML = '<i data-lucide="star" class="w-3 h-3"></i>Principal';
+                    div.appendChild(newBadge);
+                    lucide.createIcons();
+                }
+            });
+            
+            mostrarToast('Foto principal definida!', 'success');
+        }
+
+        function excluirImagem(index) {
+            if (!confirm('Deseja excluir esta imagem?')) return;
+            
+            // Remover do array
+            const eraPrincipal = imagensSelecionadas[index].isPrincipal;
+            imagensSelecionadas.splice(index, 1);
+            
+            // Se era principal e ainda tem imagens, marcar a primeira como principal
+            if (eraPrincipal && imagensSelecionadas.length > 0) {
+                imagensSelecionadas[0].isPrincipal = true;
+            }
+            
+            // Recriar preview
+            const container = document.getElementById('previewContainer');
+            container.innerHTML = '';
+            
+            imagensSelecionadas.forEach((img, i) => {
+                const div = document.createElement('div');
+                div.className = 'relative group';
+                div.setAttribute('data-img-index', i);
+                div.innerHTML = `
+                    <img src="${img.base64}" class="preview-img cursor-pointer" onclick="definirPrincipal(${i})">
+                    <div class="absolute inset-0 bg-black/0 group-hover:bg-black/50 transition flex items-center justify-center gap-2">
+                        <button type="button" onclick="definirPrincipal(${i})" class="hidden group-hover:flex bg-purple-600 text-white px-3 py-1 rounded text-xs items-center gap-1 hover:bg-purple-700">
+                            <i data-lucide="star" class="w-3 h-3"></i>
+                            Principal
+                        </button>
+                        <button type="button" onclick="excluirImagem(${i})" class="hidden group-hover:flex bg-red-600 text-white px-3 py-1 rounded text-xs items-center gap-1 hover:bg-red-700">
+                            <i data-lucide="trash-2" class="w-3 h-3"></i>
+                            Excluir
+                        </button>
+                    </div>
+                    ${img.isPrincipal ? '<span class="absolute top-2 left-2 bg-purple-600 text-white text-xs px-2 py-1 rounded flex items-center gap-1"><i data-lucide="star" class="w-3 h-3"></i>Principal</span>' : ''}
+                `;
+                container.appendChild(div);
+            });
+            
+            lucide.createIcons();
+            mostrarToast('Imagem excluída!', 'success');
         }
 
         function toggleSidebar() {
