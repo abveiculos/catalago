@@ -72,10 +72,18 @@
         </div>
     </aside>
 
+    <!-- Overlay do menu mobile -->
+    <div id="sidebarOverlay" class="sidebar-overlay" onclick="toggleSidebar()"></div>
+
     <div class="main-content">
         <header class="bg-white shadow-sm sticky top-0 z-30">
             <div class="px-6 py-4 flex items-center justify-between">
-                <h2 id="tituloAba" class="text-2xl font-bold text-gray-800">Dashboard</h2>
+                <div class="flex items-center gap-3">
+                    <button onclick="toggleSidebar()" class="lg:hidden p-2 hover:bg-gray-100 rounded-lg transition">
+                        <i data-lucide="menu" class="w-6 h-6 text-gray-700"></i>
+                    </button>
+                    <h2 id="tituloAba" class="text-2xl font-bold text-gray-800">Dashboard</h2>
+                </div>
                 <button onclick="carregarDados()" class="p-2 hover:bg-gray-100 rounded-lg transition" title="Atualizar dados">
                     <i data-lucide="refresh-cw" class="w-5 h-5"></i>
                 </button>
@@ -294,6 +302,7 @@ const MARCAS_MODELOS = {
 
         document.addEventListener('DOMContentLoaded', () => {
             verificarAutenticacao();
+            popularMarcas();
             carregarDados();
             lucide.createIcons();
         });
