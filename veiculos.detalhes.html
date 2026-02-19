@@ -1,0 +1,598 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Detalhes do Veículo - Alysson Bruno</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script src="https://unpkg.com/lucide@latest"></script>
+    <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.0/dist/chart.umd.min.js"></script>
+    <style>
+        @import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&display=swap');
+        * { font-family: 'Inter', sans-serif; }
+        .gradient-bg { background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); }
+        .tab-btn.active { background: #667eea; color: white; }
+        .categoria-badge { display: inline-block; padding: 4px 12px; border-radius: 9999px; font-size: 12px; font-weight: 600; }
+        .categoria-mecanica { background: #fef3c7; color: #92400e; }
+        .categoria-documentacao { background: #dbeafe; color: #1e40af; }
+        .categoria-estetica { background: #fce7f3; color: #9f1239; }
+        .categoria-transporte { background: #d1fae5; color: #065f46; }
+        .categoria-outros { background: #e5e7eb; color: #374151; }
+    </style>
+</head>
+<body class="bg-gray-50">
+    
+    <!-- Header -->
+    <header class="gradient-bg text-white shadow-lg sticky top-0 z-50">
+        <div class="max-w-7xl mx-auto px-4 py-4 flex items-center justify-between">
+            <div class="flex items-center gap-3">
+                <button onclick="window.close()" class="p-2 hover:bg-white/20 rounded-lg transition">
+                    <i data-lucide="arrow-left" class="w-6 h-6"></i>
+                </button>
+                <div>
+                    <h1 class="text-xl font-bold">Ficha Completa do Veículo</h1>
+                    <p class="text-sm opacity-80" id="subtitulo">Carregando...</p>
+                </div>
+            </div>
+            <button onclick="voltarAdmin()" class="px-4 py-2 bg-white/20 hover:bg-white/30 rounded-lg transition text-sm">
+                Voltar ao Painel
+            </button>
+        </div>
+    </header>
+
+    <!-- Loading -->
+    <div id="loading" class="max-w-7xl mx-auto px-4 py-8">
+        <div class="bg-white rounded-xl p-8 text-center">
+            <div class="animate-spin w-12 h-12 border-4 border-purple-600 border-t-transparent rounded-full mx-auto mb-4"></div>
+            <p class="text-gray-600">Carregando informações...</p>
+        </div>
+    </div>
+
+    <!-- Conteúdo Principal -->
+    <div id="conteudo" class="hidden max-w-7xl mx-auto px-4 py-8">
+        
+        <!-- Cabeçalho do Veículo -->
+        <div class="bg-white rounded-xl shadow-lg p-6 mb-6">
+            <div class="flex flex-wrap items-start justify-between gap-4">
+                <div>
+                    <h2 id="tituloVeiculo" class="text-3xl font-bold text-gray-800 mb-2"></h2>
+                    <div id="infoBasica" class="flex flex-wrap gap-4 text-gray-600"></div>
+                </div>
+                <div class="text-right">
+                    <p class="text-sm text-gray-500 mb-1">Investimento Total</p>
+                    <p id="investimentoTotal" class="text-3xl font-bold text-purple-600"></p>
+                    <div id="statusBadge" class="mt-2"></div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Tabs -->
+        <div class="bg-white rounded-xl shadow-lg mb-6 overflow-hidden">
+            <div class="flex border-b overflow-x-auto">
+                <button onclick="mostrarTab('financeiro')" class="tab-btn px-6 py-3 font-medium transition" data-tab="financeiro">
+                    💰 Financeiro
+                </button>
+                <button onclick="mostrarTab('despesas')" class="tab-btn px-6 py-3 font-medium transition" data-tab="despesas">
+                    📊 Despesas
+                </button>
+                <button onclick="mostrarTab('manutencoes')" class="tab-btn px-6 py-3 font-medium transition" data-tab="manutencoes">
+                    🔧 Manutenções
+                </button>
+                <button onclick="mostrarTab('historico')" class="tab-btn px-6 py-3 font-medium transition" data-tab="historico">
+                    📅 Histórico
+                </button>
+            </div>
+
+            <!-- Tab Financeiro -->
+            <div id="tab-financeiro" class="p-6 tab-content">
+                <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4 mb-6">
+                    <div class="bg-blue-50 p-4 rounded-lg">
+                        <p class="text-sm text-blue-600 mb-1">Valor de Compra</p>
+                        <p id="valorCompra" class="text-2xl font-bold text-blue-900"></p>
+                    </div>
+                    <div class="bg-yellow-50 p-4 rounded-lg">
+                        <p class="text-sm text-yellow-600 mb-1">Custos Extras</p>
+                        <p id="custosExtras" class="text-2xl font-bold text-yellow-900"></p>
+                    </div>
+                    <div class="bg-green-50 p-4 rounded-lg">
+                        <p class="text-sm text-green-600 mb-1">Valor Anunciado</p>
+                        <p id="valorAnunciado" class="text-2xl font-bold text-green-900"></p>
+                    </div>
+                    <div class="bg-purple-50 p-4 rounded-lg">
+                        <p class="text-sm text-purple-600 mb-1">Lucro Projetado</p>
+                        <p id="lucroProjetado" class="text-2xl font-bold text-purple-900"></p>
+                    </div>
+                </div>
+
+                <div class="grid grid-cols-1 lg:grid-cols-2 gap-6">
+                    <div>
+                        <h3 class="font-bold text-gray-700 mb-4 flex items-center gap-2">
+                            <i data-lucide="pie-chart" class="w-5 h-5 text-purple-600"></i>
+                            Composição do Investimento
+                        </h3>
+                        <canvas id="graficoInvestimento" height="200"></canvas>
+                    </div>
+                    <div id="secaoVenda"></div>
+                </div>
+            </div>
+
+            <!-- Tab Despesas -->
+            <div id="tab-despesas" class="p-6 tab-content hidden">
+                <div class="flex justify-between items-center mb-4">
+                    <h3 class="font-bold text-gray-700">Despesas Detalhadas</h3>
+                    <button onclick="adicionarDespesa()" class="px-4 py-2 bg-purple-600 text-white rounded-lg hover:bg-purple-700 transition text-sm">
+                        + Adicionar Despesa
+                    </button>
+                </div>
+                <div id="listaDespesas" class="space-y-3"></div>
+            </div>
+
+            <!-- Tab Manutenções -->
+            <div id="tab-manutencoes" class="p-6 tab-content hidden">
+                <div class="flex justify-between items-center mb-4">
+                    <h3 class="font-bold text-gray-700">Histórico de Manutenções</h3>
+                    <button onclick="adicionarManutencao()" class="px-4 py-2 bg-purple-600 text-white rounded-lg hover:bg-purple-700 transition text-sm">
+                        + Adicionar Manutenção
+                    </button>
+                </div>
+                <div id="listaManutencoes" class="space-y-3"></div>
+            </div>
+
+            <!-- Tab Histórico -->
+            <div id="tab-historico" class="p-6 tab-content hidden">
+                <div id="linhaDoTempo"></div>
+            </div>
+        </div>
+
+    </div>
+
+    <!-- Modal Venda -->
+    <div id="modalVenda" class="hidden fixed inset-0 bg-black/50 z-50 flex items-center justify-center p-4">
+        <div class="bg-white rounded-xl max-w-md w-full p-6">
+            <h3 class="text-2xl font-bold text-gray-800 mb-4">Registrar Venda</h3>
+            <form id="formVenda" onsubmit="salvarVenda(event)">
+                <div class="space-y-4">
+                    <div>
+                        <label class="block text-sm font-medium mb-2">Cliente*</label>
+                        <select id="vendaCliente" required class="w-full border rounded-lg px-4 py-2">
+                            <option value="">Selecione o cliente</option>
+                        </select>
+                    </div>
+                    <div>
+                        <label class="block text-sm font-medium mb-2">Valor de Venda*</label>
+                        <input type="number" id="vendaValor" required step="0.01" class="w-full border rounded-lg px-4 py-2">
+                    </div>
+                    <div>
+                        <label class="block text-sm font-medium mb-2">Forma de Pagamento*</label>
+                        <select id="vendaFormaPgto" required class="w-full border rounded-lg px-4 py-2">
+                            <option value="">Selecione</option>
+                            <option value="À vista">À vista</option>
+                            <option value="Financiado">Financiado</option>
+                            <option value="Cartão de Crédito">Cartão de Crédito</option>
+                        </select>
+                    </div>
+                </div>
+                <div class="flex justify-end space-x-3 mt-6">
+                    <button type="button" onclick="fecharModalVenda()" class="px-4 py-2 border rounded-lg">Cancelar</button>
+                    <button type="submit" class="px-4 py-2 bg-green-600 text-white rounded-lg hover:bg-green-700">Confirmar Venda</button>
+                </div>
+            </form>
+        </div>
+    </div>
+
+    <!-- Modal Despesa -->
+    <div id="modalDespesa" class="hidden fixed inset-0 bg-black/50 z-50 flex items-center justify-center p-4">
+        <div class="bg-white rounded-xl max-w-md w-full p-6">
+            <h3 class="text-xl font-bold mb-4">Adicionar Despesa</h3>
+            <form id="formDespesa" onsubmit="salvarDespesa(event)">
+                <div class="space-y-3">
+                    <div>
+                        <label class="block text-sm font-medium mb-1">Categoria*</label>
+                        <select id="despesaCategoria" required class="w-full border rounded-lg px-3 py-2">
+                            <option value="Mecânica">Mecânica</option>
+                            <option value="Documentação">Documentação</option>
+                            <option value="Estética">Estética</option>
+                            <option value="Transporte">Transporte</option>
+                            <option value="Outros">Outros</option>
+                        </select>
+                    </div>
+                    <div>
+                        <label class="block text-sm font-medium mb-1">Descrição*</label>
+                        <input type="text" id="despesaDescricao" required class="w-full border rounded-lg px-3 py-2">
+                    </div>
+                    <div>
+                        <label class="block text-sm font-medium mb-1">Valor*</label>
+                        <input type="number" id="despesaValor" required step="0.01" class="w-full border rounded-lg px-3 py-2">
+                    </div>
+                    <div>
+                        <label class="block text-sm font-medium mb-1">Data</label>
+                        <input type="date" id="despesaData" class="w-full border rounded-lg px-3 py-2">
+                    </div>
+                </div>
+                <div class="flex justify-end space-x-3 mt-4">
+                    <button type="button" onclick="fecharModalDespesa()" class="px-4 py-2 border rounded-lg text-sm">Cancelar</button>
+                    <button type="submit" class="px-4 py-2 bg-purple-600 text-white rounded-lg text-sm">Salvar</button>
+                </div>
+            </form>
+        </div>
+    </div>
+
+    <!-- Modal Manutenção -->
+    <div id="modalManutencao" class="hidden fixed inset-0 bg-black/50 z-50 flex items-center justify-center p-4">
+        <div class="bg-white rounded-xl max-w-md w-full p-6">
+            <h3 class="text-xl font-bold mb-4">Adicionar Manutenção</h3>
+            <form id="formManutencao" onsubmit="salvarManutencao(event)">
+                <div class="space-y-3">
+                    <div>
+                        <label class="block text-sm font-medium mb-1">Descrição*</label>
+                        <input type="text" id="manutencaoDescricao" required class="w-full border rounded-lg px-3 py-2">
+                    </div>
+                    <div>
+                        <label class="block text-sm font-medium mb-1">Valor*</label>
+                        <input type="number" id="manutencaoValor" required step="0.01" class="w-full border rounded-lg px-3 py-2">
+                    </div>
+                    <div>
+                        <label class="block text-sm font-medium mb-1">Data</label>
+                        <input type="date" id="manutencaoData" class="w-full border rounded-lg px-3 py-2">
+                    </div>
+                    <div>
+                        <label class="block text-sm font-medium mb-1">Observação</label>
+                        <textarea id="manutencaoObs" rows="2" class="w-full border rounded-lg px-3 py-2"></textarea>
+                    </div>
+                </div>
+                <div class="flex justify-end space-x-3 mt-4">
+                    <button type="button" onclick="fecharModalManutencao()" class="px-4 py-2 border rounded-lg text-sm">Cancelar</button>
+                    <button type="submit" class="px-4 py-2 bg-purple-600 text-white rounded-lg text-sm">Salvar</button>
+                </div>
+            </form>
+        </div>
+    </div>
+
+    <script>
+        const API_URL = 'https://script.google.com/macros/s/AKfycbwAl9RYUGOO_aM_XoZG_YJuq6FlqCQO96jNBMyEz3SXvtA-hX4wnEVorNkYHR-UF0uO/exec';
+        let veiculo = null;
+        let clientes = [];
+        let chartInvestimento = null;
+
+        document.addEventListener('DOMContentLoaded', async () => {
+            lucide.createIcons();
+            const id = new URLSearchParams(window.location.search).get('id');
+            if (!id) {
+                alert('ID do veículo não fornecido');
+                window.close();
+                return;
+            }
+            await Promise.all([carregarVeiculo(id), carregarClientes()]);
+            mostrarTab('financeiro');
+        });
+
+        async function carregarVeiculo(id) {
+            try {
+                const r = await fetch(`${API_URL}?action=getVeiculoCompleto&id=${id}`);
+                const res = await r.json();
+                if (!res.success) throw new Error(res.error);
+                veiculo = res.data;
+                renderizar();
+            } catch(e) {
+                alert('Erro ao carregar veículo: ' + e.message);
+                window.close();
+            }
+        }
+
+        async function carregarClientes() {
+            try {
+                const r = await fetch(`${API_URL}?action=getClientes`);
+                const res = await r.json();
+                if (res.success) clientes = res.data;
+            } catch(e) {}
+        }
+
+        function renderizar() {
+            document.getElementById('subtitulo').textContent = `${veiculo.marca} ${veiculo.modelo} ${veiculo.ano}`;
+            document.getElementById('tituloVeiculo').textContent = `${veiculo.marca} ${veiculo.modelo}`;
+            
+            document.getElementById('infoBasica').innerHTML = `
+                <span>${veiculo.ano}</span> • 
+                <span>${formatarKm(veiculo.km)} km</span> • 
+                <span>${veiculo.cor}</span> • 
+                <span>${veiculo.cambio}</span> • 
+                <span>${veiculo.combustivel}</span>
+            `;
+
+            const investReal = veiculo.investimento_real || veiculo.total_investido || 0;
+            document.getElementById('investimentoTotal').textContent = formatarMoeda(investReal);
+
+            const badgeColor = veiculo.status === 'Vendido' ? 'bg-green-100 text-green-800' : 
+                                veiculo.status === 'Reservado' ? 'bg-yellow-100 text-yellow-800' : 
+                                'bg-blue-100 text-blue-800';
+            document.getElementById('statusBadge').innerHTML = `<span class="px-3 py-1 rounded-full text-sm font-bold ${badgeColor}">${veiculo.status}</span>`;
+
+            renderizarFinanceiro();
+            renderizarDespesas();
+            renderizarManutencoes();
+            renderizarHistorico();
+
+            document.getElementById('loading').classList.add('hidden');
+            document.getElementById('conteudo').classList.remove('hidden');
+            lucide.createIcons();
+        }
+
+        function renderizarFinanceiro() {
+            document.getElementById('valorCompra').textContent = formatarMoeda(veiculo.valor_compra || 0);
+            document.getElementById('custosExtras').textContent = formatarMoeda(veiculo.total_despesas_detalhadas || veiculo.custos_adicionais || 0);
+            document.getElementById('valorAnunciado').textContent = formatarMoeda(veiculo.valor_anunciado || 0);
+            
+            const lucro = (veiculo.valor_anunciado || 0) - (veiculo.investimento_real || veiculo.total_investido || 0);
+            const margemClass = lucro >= 0 ? 'text-green-900' : 'text-red-900';
+            document.getElementById('lucroProjetado').innerHTML = `<span class="${margemClass}">${formatarMoeda(lucro)}</span>`;
+
+            // Gráfico
+            const ctx = document.getElementById('graficoInvestimento');
+            if (chartInvestimento) chartInvestimento.destroy();
+            
+            const despesas = veiculo.despesas || [];
+            const totalDespesas = despesas.reduce((sum, d) => sum + (Number(d.valor) || 0), 0);
+            const totalManutencoes = (veiculo.manutencoes || []).reduce((sum, m) => sum + (Number(m.valor) || 0), 0);
+            
+            chartInvestimento = new Chart(ctx, {
+                type: 'doughnut',
+                data: {
+                    labels: ['Compra', 'Despesas', 'Manutenções'],
+                    datasets: [{
+                        data: [veiculo.valor_compra || 0, totalDespesas, totalManutencoes],
+                        backgroundColor: ['#3b82f6', '#f59e0b', '#10b981']
+                    }]
+                },
+                options: { responsive: true, maintainAspectRatio: false }
+            });
+
+            // Seção de venda
+            if (veiculo.status === 'Vendido') {
+                document.getElementById('secaoVenda').innerHTML = `
+                    <div class="bg-green-50 p-4 rounded-lg">
+                        <h3 class="font-bold text-green-900 mb-3 flex items-center gap-2">
+                            <i data-lucide="check-circle" class="w-5 h-5"></i>
+                            Veículo Vendido
+                        </h3>
+                        <div class="space-y-2 text-sm">
+                            <p><strong>Valor:</strong> ${formatarMoeda(veiculo.valor_venda || 0)}</p>
+                            <p><strong>Forma:</strong> ${veiculo.forma_pagamento || 'Não informado'}</p>
+                            <p><strong>Data:</strong> ${formatarData(veiculo.data_venda)}</p>
+                            <p><strong>Lucro:</strong> ${formatarMoeda(veiculo.lucro_bruto || 0)}</p>
+                        </div>
+                    </div>
+                `;
+            } else {
+                document.getElementById('secaoVenda').innerHTML = `
+                    <div>
+                        <h3 class="font-bold text-gray-700 mb-3">Ações</h3>
+                        <button onclick="abrirModalVenda()" class="w-full bg-green-600 hover:bg-green-700 text-white py-3 rounded-lg font-bold transition">
+                            Registrar Venda
+                        </button>
+                    </div>
+                `;
+            }
+            lucide.createIcons();
+        }
+
+        function renderizarDespesas() {
+            const despesas = veiculo.despesas || [];
+            const lista = document.getElementById('listaDespesas');
+            
+            if (despesas.length === 0) {
+                lista.innerHTML = '<p class="text-gray-500 text-center py-4">Nenhuma despesa registrada</p>';
+                return;
+            }
+
+            lista.innerHTML = despesas.map(d => {
+                const catClass = 'categoria-' + (d.categoria || 'outros').toLowerCase().normalize("NFD").replace(/[\u0300-\u036f]/g, "").replace(/\s+/g, '');
+                return `
+                    <div class="flex items-center justify-between p-3 bg-gray-50 rounded-lg">
+                        <div class="flex-1">
+                            <div class="flex items-center gap-2 mb-1">
+                                <span class="categoria-badge ${catClass}">${d.categoria || 'Outros'}</span>
+                                <span class="text-xs text-gray-500">${formatarData(d.data)}</span>
+                            </div>
+                            <p class="font-medium text-gray-800">${d.descricao}</p>
+                        </div>
+                        <p class="font-bold text-gray-900 text-lg ml-4">${formatarMoeda(d.valor)}</p>
+                    </div>
+                `;
+            }).join('');
+        }
+
+        function renderizarManutencoes() {
+            const manutencoes = veiculo.manutencoes || [];
+            const lista = document.getElementById('listaManutencoes');
+            
+            if (manutencoes.length === 0) {
+                lista.innerHTML = '<p class="text-gray-500 text-center py-4">Nenhuma manutenção registrada</p>';
+                return;
+            }
+
+            lista.innerHTML = manutencoes.map(m => `
+                <div class="p-3 bg-gray-50 rounded-lg">
+                    <div class="flex items-center justify-between mb-2">
+                        <p class="font-medium text-gray-800">${m.descricao}</p>
+                        <p class="font-bold text-gray-900">${formatarMoeda(m.valor)}</p>
+                    </div>
+                    <div class="flex items-center gap-4 text-xs text-gray-500">
+                        <span>${formatarData(m.data)}</span>
+                        ${m.observacao ? '<span>• ' + m.observacao + '</span>' : ''}
+                    </div>
+                </div>
+            `).join('');
+        }
+
+        function renderizarHistorico() {
+            const eventos = [];
+            eventos.push({ data: veiculo.data_compra, texto: 'Veículo comprado', icone: 'shopping-cart', cor: 'blue' });
+            
+            (veiculo.despesas || []).forEach(d => {
+                eventos.push({ data: d.data, texto: `Despesa: ${d.descricao}`, icone: 'dollar-sign', cor: 'yellow' });
+            });
+            
+            (veiculo.manutencoes || []).forEach(m => {
+                eventos.push({ data: m.data, texto: `Manutenção: ${m.descricao}`, icone: 'wrench', cor: 'green' });
+            });
+            
+            if (veiculo.data_venda) {
+                eventos.push({ data: veiculo.data_venda, texto: 'Veículo vendido', icone: 'check-circle', cor: 'purple' });
+            }
+            
+            eventos.sort((a, b) => new Date(b.data) - new Date(a.data));
+            
+            document.getElementById('linhaDoTempo').innerHTML = eventos.map(e => `
+                <div class="flex gap-4 mb-4">
+                    <div class="flex-shrink-0 w-10 h-10 bg-${e.cor}-100 rounded-full flex items-center justify-center">
+                        <i data-lucide="${e.icone}" class="w-5 h-5 text-${e.cor}-600"></i>
+                    </div>
+                    <div>
+                        <p class="font-medium text-gray-800">${e.texto}</p>
+                        <p class="text-sm text-gray-500">${formatarData(e.data)}</p>
+                    </div>
+                </div>
+            `).join('');
+            lucide.createIcons();
+        }
+
+        function mostrarTab(tab) {
+            document.querySelectorAll('.tab-btn').forEach(btn => btn.classList.remove('active'));
+            document.querySelectorAll('.tab-content').forEach(content => content.classList.add('hidden'));
+            
+            document.querySelector(`[data-tab="${tab}"]`).classList.add('active');
+            document.getElementById(`tab-${tab}`).classList.remove('hidden');
+        }
+
+        // Modals
+        function abrirModalVenda() {
+            const select = document.getElementById('vendaCliente');
+            select.innerHTML = '<option value="">Selecione o cliente</option>' + 
+                clientes.map(c => `<option value="${c.id}">${c.nome}</option>`).join('');
+            document.getElementById('vendaValor').value = veiculo.valor_anunciado || '';
+            document.getElementById('modalVenda').classList.remove('hidden');
+        }
+
+        function fecharModalVenda() {
+            document.getElementById('modalVenda').classList.add('hidden');
+        }
+
+        async function salvarVenda(e) {
+            e.preventDefault();
+            const dados = {
+                veiculoId: veiculo.id,
+                clienteId: document.getElementById('vendaCliente').value,
+                valor_venda: document.getElementById('vendaValor').value,
+                forma_pagamento: document.getElementById('vendaFormaPgto').value
+            };
+            
+            try {
+                const r = await fetch(`${API_URL}?action=venderVeiculo`, {
+                    method: 'POST',
+                    body: JSON.stringify(dados)
+                });
+                const res = await r.json();
+                if (res.success) {
+                    alert('Venda registrada com sucesso!');
+                    location.reload();
+                } else {
+                    alert('Erro: ' + res.error);
+                }
+            } catch(e) {
+                alert('Erro ao salvar venda');
+            }
+        }
+
+        function adicionarDespesa() {
+            document.getElementById('formDespesa').reset();
+            document.getElementById('despesaData').valueAsDate = new Date();
+            document.getElementById('modalDespesa').classList.remove('hidden');
+        }
+
+        function fecharModalDespesa() {
+            document.getElementById('modalDespesa').classList.add('hidden');
+        }
+
+        async function salvarDespesa(e) {
+            e.preventDefault();
+            const dados = {
+                veiculo_id: veiculo.id,
+                categoria: document.getElementById('despesaCategoria').value,
+                descricao: document.getElementById('despesaDescricao').value,
+                valor: document.getElementById('despesaValor').value,
+                data: document.getElementById('despesaData').value
+            };
+            
+            try {
+                const r = await fetch(`${API_URL}?action=addDespesaVeiculo`, {
+                    method: 'POST',
+                    body: JSON.stringify(dados)
+                });
+                const res = await r.json();
+                if (res.success) {
+                    alert('Despesa adicionada!');
+                    location.reload();
+                } else {
+                    alert('Erro: ' + res.error);
+                }
+            } catch(e) {
+                alert('Erro ao salvar despesa');
+            }
+        }
+
+        function adicionarManutencao() {
+            document.getElementById('formManutencao').reset();
+            document.getElementById('manutencaoData').valueAsDate = new Date();
+            document.getElementById('modalManutencao').classList.remove('hidden');
+        }
+
+        function fecharModalManutencao() {
+            document.getElementById('modalManutencao').classList.add('hidden');
+        }
+
+        async function salvarManutencao(e) {
+            e.preventDefault();
+            const dados = {
+                veiculo_id: veiculo.id,
+                descricao: document.getElementById('manutencaoDescricao').value,
+                valor: document.getElementById('manutencaoValor').value,
+                data: document.getElementById('manutencaoData').value,
+                observacao: document.getElementById('manutencaoObs').value
+            };
+            
+            try {
+                const r = await fetch(`${API_URL}?action=addManutencao`, {
+                    method: 'POST',
+                    body: JSON.stringify(dados)
+                });
+                const res = await r.json();
+                if (res.success) {
+                    alert('Manutenção adicionada!');
+                    location.reload();
+                } else {
+                    alert('Erro: ' + res.error);
+                }
+            } catch(e) {
+                alert('Erro ao salvar manutenção');
+            }
+        }
+
+        function voltarAdmin() {
+            window.opener ? window.close() : window.location.href = 'admin.html';
+        }
+
+        function formatarMoeda(v) {
+            return new Intl.NumberFormat('pt-BR', { style: 'currency', currency: 'BRL' }).format(Number(v) || 0);
+        }
+
+        function formatarKm(v) {
+            return new Intl.NumberFormat('pt-BR').format(Number(v) || 0);
+        }
+
+        function formatarData(d) {
+            if (!d) return 'Data não informada';
+            return new Date(d).toLocaleDateString('pt-BR');
+        }
+    </script>
+</body>
+</html>
