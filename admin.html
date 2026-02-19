@@ -97,7 +97,8 @@
 
         <main class="p-6">
             <div id="tab-dashboard" class="tab-content active">
-                <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
+                <!-- Cards de Resumo -->
+                <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6 mb-8">
                     <div class="bg-white rounded-xl shadow-lg p-6 hover:shadow-xl transition">
                         <div class="flex items-center justify-between mb-4">
                             <div class="bg-blue-100 p-3 rounded-lg"><i data-lucide="car" class="w-6 h-6 text-blue-600"></i></div>
@@ -125,6 +126,35 @@
                         </div>
                         <p class="text-3xl font-bold text-gray-800" id="statLeads">0</p>
                         <p class="text-sm text-gray-600 mt-1">Leads Recebidos</p>
+                    </div>
+                </div>
+
+                <!-- Alertas -->
+                <div id="secaoAlertas" class="mb-8 hidden">
+                    <div class="bg-red-50 border border-red-200 rounded-xl p-6">
+                        <h3 class="text-lg font-bold text-red-800 mb-4 flex items-center gap-2">
+                            <i data-lucide="alert-triangle" class="w-5 h-5"></i>
+                            Alertas - Veículos Parados
+                        </h3>
+                        <div id="listaAlertas" class="space-y-3"></div>
+                    </div>
+                </div>
+
+                <!-- Gráficos -->
+                <div class="grid grid-cols-1 lg:grid-cols-2 gap-6">
+                    <div class="bg-white rounded-xl shadow-lg p-6">
+                        <h3 class="text-lg font-bold text-gray-800 mb-4 flex items-center gap-2">
+                            <i data-lucide="trending-up" class="w-5 h-5 text-purple-600"></i>
+                            Vendas por Mês
+                        </h3>
+                        <canvas id="graficoVendas" height="250"></canvas>
+                    </div>
+                    <div class="bg-white rounded-xl shadow-lg p-6">
+                        <h3 class="text-lg font-bold text-gray-800 mb-4 flex items-center gap-2">
+                            <i data-lucide="pie-chart" class="w-5 h-5 text-purple-600"></i>
+                            Lucro por Veículo (Top 5)
+                        </h3>
+                        <canvas id="graficoLucro" height="250"></canvas>
                     </div>
                 </div>
             </div>
@@ -337,6 +367,137 @@ const MARCAS_MODELOS = {
         async function carregarDados() {
             mostrarToast('Atualizando dados...', 'info');
             await Promise.all([carregarDashboard(), carregarVeiculos(), carregarLeads(), carregarDespesas(), carregarClientes()]);
+            lucide.createIcons();
+        }
+
+
+        // ============================================
+        // GRÁFICOS E ALERTAS
+        // ============================================
+        let chartVendas = null;
+        let chartLucro = null;
+
+        async function carregarGraficos() {
+            try {
+                const response = await fetch(`${API_URL}?action=getGraficos`);
+                const result = await response.json();
+                
+                if (result.success) {
+                    renderizarGraficoVendas(result.data.vendasPorMes);
+                    renderizarGraficoLucro(result.data.lucrosPorVeiculo);
+                }
+            } catch (e) {
+                console.error('Erro ao carregar gráficos:', e);
+            }
+        }
+
+        function renderizarGraficoVendas(dados) {
+            const ctx = document.getElementById('graficoVendas');
+            if (!ctx) return;
+
+            if (chartVendas) chartVendas.destroy();
+
+            const meses = Object.keys(dados);
+            const valores = Object.values(dados);
+
+            chartVendas = new Chart(ctx, {
+                type: 'bar',
+                data: {
+                    labels: meses,
+                    datasets: [{
+                        label: 'Vendas',
+                        data: valores,
+                        backgroundColor: '#8b5cf6',
+                        borderColor: '#7c3aed',
+                        borderWidth: 1
+                    }]
+                },
+                options: {
+                    responsive: true,
+                    maintainAspectRatio: false,
+                    plugins: {
+                        legend: { display: false }
+                    },
+                    scales: {
+                        y: {
+                            beginAtZero: true,
+                            ticks: { precision: 0 }
+                        }
+                    }
+                }
+            });
+        }
+
+        function renderizarGraficoLucro(dados) {
+            const ctx = document.getElementById('graficoLucro');
+            if (!ctx) return;
+
+            if (chartLucro) chartLucro.destroy();
+
+            if (dados.length === 0) {
+                ctx.parentElement.innerHTML = '<p class="text-gray-500 text-center py-8">Nenhuma venda registrada ainda</p>';
+                return;
+            }
+
+            const labels = dados.map(d => d.nome);
+            const valores = dados.map(d => d.lucro);
+
+            chartLucro = new Chart(ctx, {
+                type: 'doughnut',
+                data: {
+                    labels: labels,
+                    datasets: [{
+                        data: valores,
+                        backgroundColor: [
+                            '#8b5cf6',
+                            '#ec4899',
+                            '#f59e0b',
+                            '#10b981',
+                            '#3b82f6'
+                        ]
+                    }]
+                },
+                options: {
+                    responsive: true,
+                    maintainAspectRatio: false,
+                    plugins: {
+                        legend: {
+                            position: 'bottom'
+                        }
+                    }
+                }
+            });
+        }
+
+        function renderizarAlertas(alertas) {
+            if (!alertas || alertas.length === 0) {
+                document.getElementById('secaoAlertas').classList.add('hidden');
+                return;
+            }
+
+            document.getElementById('secaoAlertas').classList.remove('hidden');
+            const lista = document.getElementById('listaAlertas');
+            
+            lista.innerHTML = alertas.map(a => `
+                <div class="bg-white rounded-lg p-4 flex items-start gap-4">
+                    <div class="flex-shrink-0">
+                        <div class="w-10 h-10 bg-red-100 rounded-full flex items-center justify-center">
+                            <i data-lucide="clock" class="w-5 h-5 text-red-600"></i>
+                        </div>
+                    </div>
+                    <div class="flex-1">
+                        <h4 class="font-bold text-gray-800">${a.modelo} ${a.ano}</h4>
+                        <p class="text-sm text-gray-600 mt-1">
+                            <strong>${a.dias} dias</strong> em estoque • 
+                            Investido: ${formatarMoeda(a.investido)}
+                        </p>
+                    </div>
+                    <button onclick="verDetalhesVeiculo(${a.id})" class="px-3 py-1 text-sm bg-purple-100 text-purple-700 rounded-lg hover:bg-purple-200 transition">
+                        Ver Detalhes
+                    </button>
+                </div>
+            `).join('');
+            
             lucide.createIcons();
         }
 
@@ -831,6 +992,60 @@ const MARCAS_MODELOS = {
             datalist.innerHTML = modelos.map(m => `<option value="${m}">`).join('');
         }
 
+
+        // ============================================
+        // MÁSCARAS DE FORMATAÇÃO
+        // ============================================
+        function mascaraTelefone(valor) {
+            valor = valor.replace(/\D/g, '');
+            if (valor.length <= 10) {
+                valor = valor.replace(/(\d{2})(\d)/, '($1) $2');
+                valor = valor.replace(/(\d{4})(\d)/, '$1-$2');
+            } else {
+                valor = valor.replace(/(\d{2})(\d)/, '($1) $2');
+                valor = valor.replace(/(\d{5})(\d)/, '$1-$2');
+            }
+            return valor;
+        }
+
+        function mascaraCPF(valor) {
+            valor = valor.replace(/\D/g, '');
+            valor = valor.replace(/(\d{3})(\d)/, '$1.$2');
+            valor = valor.replace(/(\d{3})(\d)/, '$1.$2');
+            valor = valor.replace(/(\d{3})(\d{1,2})$/, '$1-$2');
+            return valor;
+        }
+
+        function mascaraCEP(valor) {
+            valor = valor.replace(/\D/g, '');
+            valor = valor.replace(/(\d{5})(\d)/, '$1-$2');
+            return valor;
+        }
+
+        function aplicarMascaras() {
+            const telInput = document.getElementById('clienteTelefone');
+            const cpfInput = document.getElementById('clienteCpf');
+            const cepInput = document.getElementById('clienteCep');
+
+            if (telInput) {
+                telInput.addEventListener('input', (e) => {
+                    e.target.value = mascaraTelefone(e.target.value);
+                });
+            }
+
+            if (cpfInput) {
+                cpfInput.addEventListener('input', (e) => {
+                    e.target.value = mascaraCPF(e.target.value);
+                });
+            }
+
+            if (cepInput) {
+                cepInput.addEventListener('input', (e) => {
+                    e.target.value = mascaraCEP(e.target.value);
+                });
+            }
+        }
+
         function toggleSidebar() {
             console.log('Toggle sidebar chamado');
             const sidebar = document.getElementById('sidebar');
@@ -938,6 +1153,7 @@ const MARCAS_MODELOS = {
             document.getElementById('clienteId').value = '';
             document.getElementById('modalCliente').classList.remove('hidden');
             lucide.createIcons();
+            aplicarMascaras();
         }
 
         function fecharModalCliente() {
@@ -962,6 +1178,7 @@ const MARCAS_MODELOS = {
             document.getElementById('clienteObservacoes').value = cliente.observacoes || '';
             document.getElementById('modalCliente').classList.remove('hidden');
             lucide.createIcons();
+            aplicarMascaras();
         }
 
         async function salvarCliente(e) {
