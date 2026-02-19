@@ -751,7 +751,7 @@ const MARCAS_MODELOS = {
             document.getElementById(`tab-${aba}`).classList.add('active');
             document.querySelectorAll('.menu-item').forEach(m => m.classList.remove('active'));
             document.querySelector(`[data-tab="${aba}"]`).classList.add('active');
-            const titulos = {dashboard: 'Dashboard', veiculos: 'Veículos', leads: 'Leads', despesas: 'Despesas'};
+            const titulos = {dashboard: 'Dashboard', veiculos: 'Veículos', leads: 'Leads', despesas: 'Despesas', clientes: 'Clientes'};
             document.getElementById('tituloAba').textContent = titulos[aba];
             lucide.createIcons();
         }
@@ -867,12 +867,19 @@ const MARCAS_MODELOS = {
             console.log('🔍 carregarClientes chamada');
             try {
                 const response = await fetch(`${API_URL}?action=getClientes`);
+                console.log('📡 Response status:', response.status);
                 const result = await response.json();
+                console.log('📦 Resultado:', result);
                 if (result.success) {
                     todosClientes = result.data;
+                    console.log('✅ Clientes carregados:', todosClientes.length);
                     renderizarClientes();
+                } else {
+                    console.error('❌ Erro na API:', result.error);
+                    mostrarToast('Erro: ' + result.error, 'error');
                 }
             } catch (e) {
+                console.error('❌ Erro no fetch:', e);
                 mostrarToast('Erro ao carregar clientes', 'error');
             }
         }
