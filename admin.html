@@ -37,6 +37,8 @@
         .menu-item.active { background: #f3f4f6; color: #667eea; font-weight: 600; }
         .modal-overlay { backdrop-filter: blur(2px); }
     </style>
+
+    <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.0/dist/chart.umd.min.js"></script>
 </head>
 <body class="bg-gray-50">
     <aside id="sidebar" class="sidebar">
@@ -65,6 +67,9 @@
                 </button>
             </nav>
             <div class="p-4 border-t">
+                <button onclick="mostrarAba('clientes')" data-tab="clientes" class="menu-item w-full flex items-center space-x-3 px-4 py-3 rounded-lg hover:bg-gray-100 transition">
+                    <i data-lucide="users" class="w-5 h-5"></i><span>Clientes</span>
+                </button>
                 <button onclick="sair()" class="w-full flex items-center space-x-3 px-4 py-3 rounded-lg hover:bg-red-50 text-red-600 transition">
                     <i data-lucide="log-out" class="w-5 h-5"></i><span>Sair</span>
                 </button>
@@ -153,6 +158,19 @@
                     </div>
                     <div id="listaDespesas" class="space-y-4"></div>
                 </div>
+
+            <div id="tab-clientes" class="tab-content">
+                <div class="bg-white rounded-xl shadow-lg p-6">
+                    <div class="flex justify-between items-center mb-6">
+                        <h3 class="text-xl font-bold text-gray-800">Clientes Cadastrados</h3>
+                        <button onclick="abrirModalCliente()" class="bg-purple-600 hover:bg-purple-700 text-white px-6 py-3 rounded-lg transition flex items-center shadow-md">
+                            <i data-lucide="user-plus" class="w-5 h-5 mr-2"></i>Adicionar Cliente
+                        </button>
+                    </div>
+                    <div id="listaClientes" class="space-y-4"></div>
+                </div>
+            </div>
+
             </div>
         </main>
     </div>
@@ -267,7 +285,7 @@
     <div id="toastContainer"></div>
 
     <script>
-        const API_URL = 'https://script.google.com/macros/s/AKfycbweKB-tmROFFtw9r9iiW8tQF7vW-nyg5xOwvSUgdnXOjZrOTJQq3171_MRe0XoBTSZN/exec';
+        const API_URL = 'https://script.google.com/macros/s/AKfycbwAl9RYUGOO_aM_XoZG_YJuq6FlqCQO96jNBMyEz3SXvtA-hX4wnEVorNkYHR-UF0uO/exec';
         
 
 const OPCIONAIS_DISPONIVEIS = ['Ar-condicionado', 'Direção hidráulica', 'Direção elétrica', 'Vidros elétricos', 'Travas elétricas', 'Retrovisores elétricos', 'Alarme', 'Air bag motorista', 'Air bag passageiro', 'Air bags laterais', 'ABS', 'Freios a disco', 'Sensor de estacionamento', 'Câmera de ré', 'Controle de tração', 'Controle de estabilidade', 'Piloto automático', 'Computador de bordo', 'Bancos em couro', 'Bancos aquecidos', 'Volante com regulagem de altura', 'Volante multifuncional', 'Rádio', 'CD player', 'Bluetooth', 'USB', 'Entrada auxiliar', 'Rodas de liga leve', 'Teto solar', 'Engate reboque', 'Rack de teto'];
@@ -317,7 +335,7 @@ const MARCAS_MODELOS = {
 
         async function carregarDados() {
             mostrarToast('Atualizando dados...', 'info');
-            await Promise.all([carregarDashboard(), carregarVeiculos(), carregarLeads(), carregarDespesas()]);
+            await Promise.all([carregarDashboard(), carregarVeiculos(), carregarLeads(), carregarDespesas(), carregarClientes()]);
             lucide.createIcons();
         }
 
@@ -837,6 +855,237 @@ const MARCAS_MODELOS = {
             
             console.log('Novo estado:', sidebar.classList.contains('open') ? 'aberto' : 'fechado');
         }
-    </script>
+    
+        // ============================================
+        // CLIENTES
+        // ============================================
+        let todosClientes = [];
+        let clienteEditando = null;
+
+        async function carregarClientes() {
+            try {
+                const response = await fetch(`${API_URL}?action=getClientes`);
+                const result = await response.json();
+                if (result.success) {
+                    todosClientes = result.data;
+                    renderizarClientes();
+                }
+            } catch (e) {
+                mostrarToast('Erro ao carregar clientes', 'error');
+            }
+        }
+
+        function renderizarClientes() {
+            const lista = document.getElementById('listaClientes');
+            if (todosClientes.length === 0) {
+                lista.innerHTML = '<p class="text-center text-gray-500 py-8">Nenhum cliente cadastrado</p>';
+                return;
+            }
+            lista.innerHTML = todosClientes.map(c => `
+                <div class="border border-gray-200 rounded-lg p-4 hover:shadow-md transition">
+                    <div class="flex justify-between items-start">
+                        <div class="flex-1">
+                            <h4 class="font-bold text-lg text-gray-800">${c.nome}</h4>
+                            <div class="grid grid-cols-1 md:grid-cols-2 gap-2 mt-2 text-sm text-gray-600">
+                                <div class="flex items-center">
+                                    <i data-lucide="credit-card" class="w-4 h-4 mr-2"></i>
+                                    ${c.cpf || 'CPF não informado'}
+                                </div>
+                                <div class="flex items-center">
+                                    <i data-lucide="phone" class="w-4 h-4 mr-2"></i>
+                                    ${c.telefone || 'Telefone não informado'}
+                                </div>
+                                <div class="flex items-center">
+                                    <i data-lucide="mail" class="w-4 h-4 mr-2"></i>
+                                    ${c.email || 'Email não informado'}
+                                </div>
+                                <div class="flex items-center">
+                                    <i data-lucide="map-pin" class="w-4 h-4 mr-2"></i>
+                                    ${c.cidade && c.estado ? c.cidade + ' - ' + c.estado : 'Endereço não informado'}
+                                </div>
+                            </div>
+                            ${c.observacoes ? '<p class="mt-2 text-sm text-gray-500 italic">' + c.observacoes + '</p>' : ''}
+                        </div>
+                        <div class="flex space-x-2 ml-4">
+                            <button onclick="editarCliente(${c.id})" class="p-2 hover:bg-gray-100 rounded-lg transition" title="Editar">
+                                <i data-lucide="edit" class="w-5 h-5 text-gray-600"></i>
+                            </button>
+                            <button onclick="excluirCliente(${c.id})" class="p-2 hover:bg-red-100 text-red-600 rounded-lg transition" title="Excluir">
+                                <i data-lucide="trash-2" class="w-5 h-5"></i>
+                            </button>
+                        </div>
+                    </div>
+                </div>
+            `).join('');
+            lucide.createIcons();
+        }
+
+        function abrirModalCliente() {
+            clienteEditando = null;
+            document.getElementById('modalClienteTitulo').textContent = 'Adicionar Cliente';
+            document.getElementById('formCliente').reset();
+            document.getElementById('clienteId').value = '';
+            document.getElementById('modalCliente').classList.remove('hidden');
+            lucide.createIcons();
+        }
+
+        function fecharModalCliente() {
+            document.getElementById('modalCliente').classList.add('hidden');
+        }
+
+        async function editarCliente(id) {
+            clienteEditando = id;
+            const cliente = todosClientes.find(c => c.id === id);
+            if (!cliente) return;
+
+            document.getElementById('modalClienteTitulo').textContent = 'Editar Cliente';
+            document.getElementById('clienteId').value = cliente.id;
+            document.getElementById('clienteNome').value = cliente.nome || '';
+            document.getElementById('clienteCpf').value = cliente.cpf || '';
+            document.getElementById('clienteTelefone').value = cliente.telefone || '';
+            document.getElementById('clienteEmail').value = cliente.email || '';
+            document.getElementById('clienteEndereco').value = cliente.endereco || '';
+            document.getElementById('clienteCidade').value = cliente.cidade || '';
+            document.getElementById('clienteEstado').value = cliente.estado || '';
+            document.getElementById('clienteCep').value = cliente.cep || '';
+            document.getElementById('clienteObservacoes').value = cliente.observacoes || '';
+            document.getElementById('modalCliente').classList.remove('hidden');
+            lucide.createIcons();
+        }
+
+        async function salvarCliente(e) {
+            e.preventDefault();
+            
+            const dados = {
+                nome: document.getElementById('clienteNome').value,
+                cpf: document.getElementById('clienteCpf').value,
+                telefone: document.getElementById('clienteTelefone').value,
+                email: document.getElementById('clienteEmail').value,
+                endereco: document.getElementById('clienteEndereco').value,
+                cidade: document.getElementById('clienteCidade').value,
+                estado: document.getElementById('clienteEstado').value,
+                cep: document.getElementById('clienteCep').value,
+                observacoes: document.getElementById('clienteObservacoes').value
+            };
+
+            const action = clienteEditando ? 'updateCliente' : 'addCliente';
+            if (clienteEditando) dados.id = clienteEditando;
+
+            try {
+                const response = await fetch(`${API_URL}?action=${action}`, {
+                    method: 'POST',
+                    body: JSON.stringify(dados)
+                });
+                const result = await response.json();
+                
+                if (result.success) {
+                    mostrarToast('Cliente salvo com sucesso!', 'success');
+                    fecharModalCliente();
+                    await carregarClientes();
+                } else {
+                    mostrarToast('Erro ao salvar cliente: ' + result.error, 'error');
+                }
+            } catch (e) {
+                mostrarToast('Erro ao salvar cliente', 'error');
+            }
+        }
+
+        async function excluirCliente(id) {
+            if (!confirm('Deseja realmente excluir este cliente?')) return;
+
+            try {
+                const response = await fetch(`${API_URL}?action=deleteCliente`, {
+                    method: 'POST',
+                    body: JSON.stringify({ id: id })
+                });
+                const result = await response.json();
+                
+                if (result.success) {
+                    mostrarToast('Cliente excluído com sucesso!', 'success');
+                    await carregarClientes();
+                } else {
+                    mostrarToast('Erro ao excluir cliente', 'error');
+                }
+            } catch (e) {
+                mostrarToast('Erro ao excluir cliente', 'error');
+            }
+        }
+
+
+        function verDetalhesVeiculo(id) {
+            // Abre a página de detalhes em nova aba
+            window.open('veiculo-detalhes.html?id=' + id, '_blank');
+        }
+
+</script>
+
+    <!-- Modal Cliente -->
+    <div id="modalCliente" class="hidden fixed inset-0 bg-black/50 z-50 flex items-center justify-center p-4 modal-overlay">
+        <div class="bg-white rounded-xl max-w-2xl w-full max-h-[90vh] overflow-y-auto shadow-2xl">
+            <div class="p-6 border-b flex justify-between items-center sticky top-0 bg-white z-10">
+                <h3 class="text-2xl font-bold text-gray-800" id="modalClienteTitulo">Adicionar Cliente</h3>
+                <button onclick="fecharModalCliente()" class="p-2 hover:bg-gray-100 rounded-lg transition">
+                    <i data-lucide="x" class="w-6 h-6"></i>
+                </button>
+            </div>
+            <div class="p-6">
+                <form id="formCliente" onsubmit="salvarCliente(event)" class="space-y-4">
+                    <input type="hidden" id="clienteId">
+                    
+                    <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+                        <div class="md:col-span-2">
+                            <label class="block text-sm font-medium text-gray-700 mb-2">Nome Completo*</label>
+                            <input type="text" id="clienteNome" required class="w-full border border-gray-300 rounded-lg px-4 py-2">
+                        </div>
+                        
+                        <div>
+                            <label class="block text-sm font-medium text-gray-700 mb-2">CPF*</label>
+                            <input type="text" id="clienteCpf" required placeholder="000.000.000-00" class="w-full border border-gray-300 rounded-lg px-4 py-2">
+                        </div>
+                        
+                        <div>
+                            <label class="block text-sm font-medium text-gray-700 mb-2">Telefone*</label>
+                            <input type="text" id="clienteTelefone" required placeholder="(00) 00000-0000" class="w-full border border-gray-300 rounded-lg px-4 py-2">
+                        </div>
+                        
+                        <div class="md:col-span-2">
+                            <label class="block text-sm font-medium text-gray-700 mb-2">Email</label>
+                            <input type="email" id="clienteEmail" class="w-full border border-gray-300 rounded-lg px-4 py-2">
+                        </div>
+                        
+                        <div class="md:col-span-2">
+                            <label class="block text-sm font-medium text-gray-700 mb-2">Endereço</label>
+                            <input type="text" id="clienteEndereco" class="w-full border border-gray-300 rounded-lg px-4 py-2">
+                        </div>
+                        
+                        <div>
+                            <label class="block text-sm font-medium text-gray-700 mb-2">Cidade</label>
+                            <input type="text" id="clienteCidade" class="w-full border border-gray-300 rounded-lg px-4 py-2">
+                        </div>
+                        
+                        <div>
+                            <label class="block text-sm font-medium text-gray-700 mb-2">Estado</label>
+                            <input type="text" id="clienteEstado" maxlength="2" placeholder="MG" class="w-full border border-gray-300 rounded-lg px-4 py-2">
+                        </div>
+                        
+                        <div>
+                            <label class="block text-sm font-medium text-gray-700 mb-2">CEP</label>
+                            <input type="text" id="clienteCep" placeholder="00000-000" class="w-full border border-gray-300 rounded-lg px-4 py-2">
+                        </div>
+                        
+                        <div class="md:col-span-2">
+                            <label class="block text-sm font-medium text-gray-700 mb-2">Observações</label>
+                            <textarea id="clienteObservacoes" rows="3" class="w-full border border-gray-300 rounded-lg px-4 py-2"></textarea>
+                        </div>
+                    </div>
+                    
+                    <div class="flex justify-end space-x-3 pt-4 border-t">
+                        <button type="button" onclick="fecharModalCliente()" class="px-6 py-3 border border-gray-300 rounded-lg hover:bg-gray-50 transition font-medium">Cancelar</button>
+                        <button type="submit" class="px-6 py-3 bg-purple-600 text-white rounded-lg hover:bg-purple-700 transition font-medium shadow-md">Salvar Cliente</button>
+                    </div>
+                </form>
+            </div>
+        </div>
+    </div>
 </body>
 </html>
