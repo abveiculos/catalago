@@ -324,6 +324,22 @@
                 
                 if (result.success) {
                     todosVeiculos = result.data;
+                    // Buscar imagens de cada veículo
+                    await Promise.all(todosVeiculos.map(async v => {
+                        if (v.pasta_drive) {
+                            try {
+                                const imgRes = await fetch(`${API_URL}?action=getImagensPasta&pastaUrl=${encodeURIComponent(v.pasta_drive)}`);
+                                const imgData = await imgRes.json();
+                                if (imgData.success) {
+                                    v.imagens = imgData.data || [];
+                                }
+                            } catch(e) {
+                                v.imagens = [];
+                            }
+                        } else {
+                            v.imagens = [];
+                        }
+                    }));
                     console.log(todosVeiculos); // <-- Adicione isso
                     veiculosFiltrados = [...todosVeiculos];
                     renderizarDestaques();
