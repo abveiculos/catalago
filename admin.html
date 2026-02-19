@@ -1128,11 +1128,19 @@ const MARCAS_MODELOS = {
 
 
         function renderizarFotosExistentes() {
+            console.log('🎨 renderizarFotosExistentes chamada');
+            console.log('🎨 fotosExistentes:', fotosExistentes);
+            
             const container = document.getElementById('previewContainer');
             container.innerHTML = '';
             
             // Garantir que fotosExistentes existe
-            if (!fotosExistentes || fotosExistentes.length === 0) return;
+            if (!fotosExistentes || fotosExistentes.length === 0) {
+                console.warn('⚠️ Nenhuma foto para renderizar');
+                return;
+            }
+            
+            console.log('🎨 Renderizando', fotosExistentes.length, 'fotos');
             
             fotosExistentes.forEach((foto, index) => {
                 const div = document.createElement('div');
